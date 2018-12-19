@@ -1,0 +1,27 @@
+[
+  {
+    "id": "genre_level",
+    "type": "enum",
+    "label": "Gracenote genre level",
+    "values": ["None (don't use genres from Gracenote)", "Coarse (10 genres)", "Medium (75 genres)", "Fine (500 genres)"],
+    "default": "Medium (75 genres)"
+  },
+  {
+    "id": "concerts",
+    "type": "bool",
+    "label": "Download concert information",
+    "default": "true"
+  },
+  {
+    "id": "popular",
+    "type": "bool",
+    "label": "Download popular track information",
+    "default": "true"
+  },
+  {
+    "id": "album_reviews",
+    "type": "bool",
+    "label": "Download album reviews",
+    "default": "true"
+  }
+]

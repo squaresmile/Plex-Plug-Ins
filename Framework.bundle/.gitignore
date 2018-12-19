@@ -1,0 +1,11 @@
+.pyc
+.project
+.pydevproject
+.DS_Store
+docs/build
+Build
+build
+tools
+/lib
+*.pyc
+.idea

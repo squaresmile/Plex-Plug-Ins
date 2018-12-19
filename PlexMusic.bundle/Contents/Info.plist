@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.plexapp.agents.plexmusic</string>
+	<key>PlexAgentAttributionText</key>
+	<string>
+		&lt;p&gt;Plex Premium Music is powered by &lt;a href=&quot;http://www.gracenote.com/&quot;&gt;Gracenote&lt;/a&gt; 
+		with other content from &lt;a href=&quot;http://www.last.fm/&quot;&gt;Last.fm&lt;/a&gt;
+		and &lt;a href=&quot;http://www.discogs.com/&quot;&gt;Discogs&lt;/a&gt;. Concert information is provided by &lt;a href=&quot;http://www.songkick.com/&quot;&gt;songkick&lt;/a&gt;. Portions of the content are copyright © of Gracenote or its providers.&lt;/p&gt;
+		&lt;p&gt;Gracenote® End User License Agreement&lt;/p&gt;
+		&lt;p&gt;This application or device contains software from Gracenote, Inc. of Emeryville, California (“Gracenote”).  The software from Gracenote (the “Gracenote Software”) enables this application to perform disc and/or file identification and obtain music-related information, including name, artist, track, and title information (“Gracenote Data”) from online servers or embedded databases (collectively, “Gracenote Servers”) and to perform other functions.  You may use Gracenote Data only by means of the intended End-User functions of this application or device.&lt;/p&gt;
+		&lt;p&gt;You agree that you will use Gracenote Data, the Gracenote Software, and Gracenote Servers for your own personal non-commercial use only.  You agree not to assign, copy, transfer or transmit the Gracenote Software or any Gracenote Data to any third party.  YOU AGREE NOT TO USE OR EXPLOIT GRACENOTE DATA, THE GRACENOTE SOFTWARE, OR GRACENOTE SERVERS, EXCEPT AS EXPRESSLY PERMITTED HEREIN.&lt;/p&gt;
+		&lt;p&gt;You agree that your non-exclusive license to use the Gracenote Data, the Gracenote Software, and Gracenote Servers will terminate if you violate these restrictions.  If your license terminates, you agree to cease any and all use of the Gracenote Data, the Gracenote Software, and Gracenote Servers.  Gracenote reserves all rights in Gracenote Data, the Gracenote Software, and the Gracenote Servers, including all ownership rights.  Under no circumstances will Gracenote become liable for any payment to you for any information that you provide.  You agree that Gracenote, Inc. may enforce its rights under this Agreement against you directly in its own name.&lt;/p&gt;
+		&lt;p&gt;The Gracenote service uses a unique identifier to track queries for statistical purposes.  The purpose of a randomly assigned numeric identifier is to allow the Gracenote service to count queries without knowing anything about who you are.  For more information, see the web page for the Gracenote Privacy Policy for the Gracenote service.&lt;/p&gt;
+		&lt;p&gt;The Gracenote Software and each item of Gracenote Data are licensed to you “AS IS.”  Gracenote makes no representations or warranties, express or implied, regarding the accuracy of any Gracenote Data from in the Gracenote Servers.  Gracenote reserves the right to delete data from the Gracenote Servers or to change data categories for any cause that Gracenote deems sufficient.  No warranty is made that the Gracenote Software or Gracenote Servers are error-free or that functioning of Gracenote Software or Gracenote Servers will be uninterrupted. Gracenote is not obligated to provide you with new enhanced or additional data types or categories that Gracenote may provide in the future and is free to discontinue its services at any time.&lt;/p&gt;
+		&lt;p&gt;GRACENOTE DISCLAIMS ALL WARRANTIES EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.  GRACENOTE DOES NOT WARRANT THE RESULTS THAT WILL BE OBTAINED BY YOUR USE OF THE GRACENOTE SOFTWARE OR ANY GRACENOTE SERVER.  IN NO CASE WILL GRACENOTE BE LIABLE FOR ANY CONSEQUENTIAL OR INCIDENTAL DAMAGES OR FOR ANY LOST PROFITS OR LOST REVENUES.&lt;/p&gt;
+		&lt;p&gt;© Gracenote, Inc. 2009&lt;/p&gt;
+	</string>
+	<key>PlexFrameworkVersion</key>
+	<string>2</string>
+	<key>PlexPluginClass</key>
+	<string>Agent</string>
+	<key>PlexPluginCodePolicy</key>
+	<string>Elevated</string>
+</dict>
+</plist>
