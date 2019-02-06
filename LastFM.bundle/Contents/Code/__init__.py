@@ -568,6 +568,11 @@ class LastFmAlbumAgent(Agent.Album):
 
 def SearchArtists(artist, limit=10, legacy=False):
   artists = []
+
+  if not artist:
+    Log('Missing artist. Skipping match')
+    return artists
+
   lim = min(limit,ARTIST_SEARCH_PAGE_SIZE)
   for i in range((limit-1)/ARTIST_SEARCH_PAGE_SIZE+1):
     try:
@@ -584,16 +589,22 @@ def SearchArtists(artist, limit=10, legacy=False):
         artists = artists + Listify(artist_results['artistmatches']['artist'])
     except:
       Log('Error retrieving artist search results.')
+
   return artists
 
 
 def SearchAlbums(album, limit=10, legacy=False):
-
   albums = []
+
+  if not album:
+    Log('Missing album. Skipping match')
+    return albums
+
   try:
     a = album.lower().encode('utf-8')
   except:
     a = album.lower()
+
   url = ALBUM_SEARCH_URL % (String.Quote(a), limit)
   try:
     response = GetJSON(url)
@@ -605,6 +616,7 @@ def SearchAlbums(album, limit=10, legacy=False):
       albums = Listify(album_results['albummatches']['album'])
   except:
     Log('Error retrieving album search results.')
+
   return albums
 
 

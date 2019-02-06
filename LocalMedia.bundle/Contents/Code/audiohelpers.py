@@ -321,7 +321,7 @@ class FLACAudioHelper(AudioHelper):
 class OGGAudioHelper(AudioHelper):
   @classmethod
   def is_helper_for(cls, tagType):
-    return tagType in ['OggVorbis']
+    return tagType in ['OggVorbis', 'OggOpus']
 
   def process_metadata(self, metadata):
 

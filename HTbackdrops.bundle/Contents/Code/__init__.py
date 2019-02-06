@@ -1,4 +1,4 @@
-API_URL = 'http://htbackdrops.plex.tv/api'  # HTTPS not available
+API_URL = 'https://htbackdrops.plex.tv/api'
 API_KEY = '15f8fe4ad7760d77c85e686eefafd26f'
 SEARCH_ARTIST  = '%s/%s/searchXML?keywords=%%s&default_operator=and&limit=50&aid=1,5' % (API_URL, API_KEY)
 MUSIC_ART      = '%s/%s/searchXML?keywords=%%s&default_operator=and&limit=50&aid=1' % (API_URL, API_KEY)

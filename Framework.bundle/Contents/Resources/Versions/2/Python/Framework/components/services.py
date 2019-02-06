@@ -688,7 +688,7 @@ class Services(BaseComponent):
 
   def lookup_url_for_media_url(self, url, syncable=False):
     url = self.normalize_url(url)
-    prefix = 'http://node.plexapp.com:32400' if self._core.config.use_node_for_url_lookups else ''
+    prefix = 'https://node.plexapp.com:32443' if self._core.config.use_node_for_url_lookups else ''
     lookup_url = prefix + '/system/services/url/lookup?url='+urllib.quote(url, '')
 
     # Add the syncable argument if required.

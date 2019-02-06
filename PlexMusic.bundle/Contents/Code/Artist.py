@@ -11,10 +11,10 @@ FANART_TV_FANART_PATH = '/fanart/'
 FANART_TV_PREVIEW_PATH = '/preview/'
 
 HTBACKDROPS_API_KEY = '15f8fe4ad7760d77c85e686eefafd26f'
-HTBACKDROPS_MBID_SEARCH_URL = 'http://htbackdrops.plex.tv/api/%s/searchXML?mbid=%%s&default_operator=and&aid=1,5' % HTBACKDROPS_API_KEY
-HTBACKDROPS_KEYWORD_SEARCH_URL = 'http://htbackdrops.plex.tv/api/%s/searchXML?keywords=%%s&default_operator=and&aid=1,5' % HTBACKDROPS_API_KEY
-HTBACKDROPS_THUMB_URL = 'http://htbackdrops.plex.tv/api/%s/download/%%s/thumbnail' % HTBACKDROPS_API_KEY
-HTBACKDROPS_FULL_URL = 'http://htbackdrops.plex.tv/api/%s/download/%%s/fullsize' % HTBACKDROPS_API_KEY
+HTBACKDROPS_MBID_SEARCH_URL = 'https://htbackdrops.plex.tv/api/%s/searchXML?mbid=%%s&default_operator=and&aid=1,5' % HTBACKDROPS_API_KEY
+HTBACKDROPS_KEYWORD_SEARCH_URL = 'https://htbackdrops.plex.tv/api/%s/searchXML?keywords=%%s&default_operator=and&aid=1,5' % HTBACKDROPS_API_KEY
+HTBACKDROPS_THUMB_URL = 'https://htbackdrops.plex.tv/api/%s/download/%%s/thumbnail' % HTBACKDROPS_API_KEY
+HTBACKDROPS_FULL_URL = 'https://htbackdrops.plex.tv/api/%s/download/%%s/fullsize' % HTBACKDROPS_API_KEY
 
 def find_lastfm_artist(artist, album_titles, lang):
     try: return Core.messaging.call_external_function('com.plexapp.agents.lastfm', 'MessageKit:ArtistSearch', kwargs = dict(artist=artist, albums=album_titles, lang=lang))

@@ -286,9 +286,9 @@ class FanartTVAgent(Agent.TV_Shows):
 
 					if json_obj and 'seasonposter' in json_obj:
 
-						for img in SortMedia(json_obj['seasonposter'], lang=lang):
+						i = 0
 
-							i = 0
+						for img in SortMedia(json_obj['seasonposter'], lang=lang):
 
 							if 'season' in img and img['season'] == s:
 								poster_url = img['url']
