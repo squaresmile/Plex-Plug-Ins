@@ -123,5 +123,11 @@
   "We found hardware we recognize!": "We found hardware we recognise!",
   "With Plex Pass and a digital tuner, you can record over-the-air broadcast TV and watch your favorite shows, movies, news, and sports on any device, anywhere in the world. Cut the cord and love TV again.": "With Plex Pass and a digital tuner, you can record over-the-air broadcast TV and watch your favourite shows, movies, news, and sports on any device, anywhere in the world. Cut the cord and love TV again.",
   "{albumCount} Albums": "{albumCount} albums",
+  "{dayOfWeekAbbreviated}, {monthAbbreviated} {dayNumber}": "{dayOfWeekAbbreviated}, {dayNumber} {monthAbbreviated}",
+  "{dayOfWeek} {monthNumber}/{dayNumber}": "{dayOfWeek} {dayNumber}/{monthNumber}",
+  "{monthName} {day}, {year}": "{day} {monthName} {year}",
+  "{monthNumber}/{dayNumber}/{shortYear}": "{dayNumber}/{monthNumber}/{shortYear}",
+  "{month} {dayNumber}": "{dayNumber} {month}",
+  "{month} {dayNumber}, {year}": "{dayNumber} {month} {year}",
   "{trackCount} Tracks": "{trackCount} tracks"
 }

@@ -15,7 +15,7 @@ TMDB_MOVIE_IMAGES = '/movie/%s/images'
 
 # TV
 TMDB_TV_SEARCH = '/search/tv?query=%s&year=%s&language=%s&include_adult=%s'
-TMDB_TV = '/tv/%s?append_to_response=credits&language=%s'
+TMDB_TV = '/tv/%s?append_to_response=credits,content_ratings&language=%s'
 TMDB_TV_SEASON = '/tv/%s/season/%s?language=%s'
 TMDB_TV_EPISODE = '/tv/%s/season/%s/episode/%s?&append_to_response=credits,images&language=%s'
 TMDB_TV_IMAGES = '/tv/%s/images'
@@ -730,6 +730,23 @@ class TMDbAgent(Agent.TV_Shows):
 
         country = country.replace('United States of America', 'USA')
         metadata.countries.add(country)
+
+    try:
+      c = None
+      if Prefs['country'] != '':
+        c = Prefs['country']
+
+      for country in tmdb_dict['content_ratings']['results']:
+        if country['iso_3166_1'] == Locale.CountryCodes.MatchToCode(c):
+          # Content rating.
+          if 'rating' in country and country['rating'] != '':
+            if Locale.CountryCodes.MatchToCode(c) == 'US':
+              metadata.content_rating = country['rating']
+            else:
+              metadata.content_rating = '%s/%s' % (Locale.CountryCodes.MatchToCode(c).lower(), country['rating'])
+          break
+    except:
+      pass
 
     # Cast.
     metadata.roles.clear()
