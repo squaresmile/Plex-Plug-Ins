@@ -34,7 +34,7 @@ ARTIST_MATCH_LIMIT = 9 # Max number of artists to fetch for matching purposes.
 ARTIST_MATCH_MIN_SCORE = 75 # Minimum score required to add to custom search results.
 ARTIST_MANUAL_MATCH_LIMIT = 120 # Number of artists to fetch when trying harder for manual searches.  Multiple API hits.
 ARTIST_SEARCH_PAGE_SIZE = 30 # Number of artists in a search result page.  Asking for more has no effect.
-ARTIST_ALBUMS_MATCH_LIMIT = 5 # Max number of artist matches to try for album bonus.  Each one incurs an additional API request.
+ARTIST_ALBUMS_MATCH_LIMIT = 3 # Max number of artist matches to try for album bonus.  Each one incurs an additional API request.
 ARTIST_ALBUMS_LIMIT = 50 # Number of albums by artist to grab for artist matching bonus and quick album match.
 ARTIST_MIN_LISTENER_THRESHOLD = 250 # Minimum number of listeners for an artist to be considered credible.
 ARTIST_MATCH_GOOD_SCORE = 90 # Include artists with this score or higher regardless of listener count.
@@ -246,7 +246,6 @@ class LastFmAgent(Agent.Artist):
     Log('Artist search: ' + media.artist)
     if manual:
       Log('Running custom search...')
-    artists = []
     artist_results = []
 
     artists = SearchArtists(media.artist, ARTIST_MATCH_LIMIT)
@@ -590,7 +589,14 @@ def SearchArtists(artist, limit=10, legacy=False):
     except:
       Log('Error retrieving artist search results.')
 
-  return artists
+  # Since LFM has lots of garbage artists that match garbage inputs, we'll only consider ones that have
+  # either a MusicBrainz ID or artwork.
+  #
+  valid_artists = [a for a in artists if a['mbid'] or (len(a.get('image', [])) > 0 and a['image'][0].get('#text', None))]
+  if len(artists) != len(valid_artists):
+    Log('Skipping artist results because they lacked artwork or MBID: %s' % ', '.join({a['name'] for a in artists}.difference({a['name'] for a in valid_artists})))
+
+  return valid_artists
 
 
 def SearchAlbums(album, limit=10, legacy=False):
@@ -717,10 +723,10 @@ def GetArtistTopTracks(artist_id, lang='en'):
         total_pages = int(top_tracks_result['toptracks']['@attr']['totalPages'])
         new_results = Listify(top_tracks_result['toptracks']['track'])
         result.extend(new_results)
-        Log('Last popular track in page %d (out of %d) had count %d', page, total_pages, int(result[-1]['playcount']))
+        Log('Last popular track in page %d (out of %d) had %d listeners', page, total_pages, int(result[-1]['listeners']))
 
         # Get out if we've reached the very unpopular.
-        if int(result[-1]['playcount']) < 2000:
+        if int(result[-1]['listeners']) < 1000:
           break
 
         # Get out if we've exceeded the number of pages.
@@ -788,7 +794,7 @@ def GetArtistSongkickId(artist_name):
 def GetJSON(url, sleep_time=QUERY_SLEEP_TIME, cache_time=CACHE_1MONTH):
   d = None
   try:
-    d = JSON.ObjectFromURL(url, sleep=sleep_time, cacheTime=cache_time, headers={'Accept-Encoding':'gzip'})    
+    d = JSON.ObjectFromURL(url, sleep=sleep_time, cacheTime=cache_time, headers={'Accept-Encoding':'gzip', 'X-PLEX-VERSION':'2.0'})
     if isinstance(d, dict):
       return d
   except:

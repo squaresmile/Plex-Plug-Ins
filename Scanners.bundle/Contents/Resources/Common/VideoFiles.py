@@ -24,7 +24,7 @@ for d in source_dict:
 
 audio = ['([^0-9])5\.1[ ]*ch(.)','([^0-9])5\.1([^0-9]?)','([^0-9])7\.1[ ]*ch(.)','([^0-9])7\.1([^0-9])']
 subs = ['multi','multisubs']
-misc = ['cd1','cd2','1cd','2cd','custom','internal','repack','read.nfo','readnfo','nfofix','proper','rerip','dubbed','subbed','extended','unrated','xxx','nfo','dvxa']
+misc = ['cd1','cd2','1cd','2cd','custom','internal','repack','read.nfo','readnfo','nfofix','proper','rerip','dubbed','subbed','extended','unrated','xxx','nfo','dvxa', 'web']
 format = ['ac3','dc','divx','fragment','limited','ogg','ogm','ntsc','pal','ps3avchd','r1','r3','r5','720i','720p','1080i','1080p','remux','x264','xvid','vorbis','aac','dts','fs','ws','1920x1080','1280x720','h264','h','264','prores','uhd','2160p','truehd','atmos','hevc']
 
 reversed_tokens = set()
@@ -158,6 +158,10 @@ def CleanName(name):
         finalTokens.append('DC')
       else:
         finalTokens.append("(Director's cut)")
+    elif not good and newTokens[i].lower() == 'web':
+      # We're checking here for the 'web-dl' case (have to do it in two pieces b/c it gets split).
+      if i+1 < len(newTokens) and newTokens[i+1].lower() in ['dl']:
+        i += 1
     
     if good == True:
       numGood += 1
