@@ -127,7 +127,7 @@ class PlexMovieAgent(Agent.Movies):
     ip = HTTP.Request('https://plex.tv/pms/:/ip', cacheTime=CACHE_1DAY).content.strip()
     return ip
 
-  def getPlexMovieResults(self, media, matches, search_type='hash', plex_hash=''):
+  def getPlexMovieResults(self, media, matches, search_type='hash', plex_hash='', force=False):
     if search_type is 'hash' and plex_hash is not None:
       url = '%s/%s/hash/%s/%s.xml' % (PLEXMOVIE_URL, PLEXMOVIE_BASE, plex_hash[0:2], plex_hash)
     else:
@@ -136,7 +136,7 @@ class PlexMovieAgent(Agent.Movies):
 
     try:
       Log("checking %s search vector: %s" % (search_type, url))
-      res = XML.ElementFromURL(url, cacheTime=CACHE_1WEEK, headers={'Accept-Encoding':'gzip'})
+      res = XML.ElementFromURL(url, cacheTime=0 if force else CACHE_1WEEK, headers={'Accept-Encoding':'gzip'})
       
       for match in res.xpath('//match'):
         id    = "tt%s" % match.get('guid')
@@ -404,7 +404,7 @@ class PlexMovieAgent(Agent.Movies):
       
       # Add a result for the id found in the passed in guid hint.
       findByIdCalled = True
-      (title, year) = self.findById(theGuid, lang)
+      (title, year) = self.findById(theGuid, lang, False)
       if title is not None:
         bestHitScore = 100 # Treat a guid-match as a perfect score
         results.Append(MetadataSearchResult(id=theGuid, name=title, year=year, lang=lang, score=bestHitScore))
@@ -525,7 +525,7 @@ class PlexMovieAgent(Agent.Movies):
         except:
           pass
 
-  def update(self, metadata, media, lang):
+  def update(self, metadata, media, lang, force=False):
 
     # If this looks like a TMDB GUID, get the IMDB ID.
     tmdb_search = re.search(r'^(com.plexapp.agents.themoviedb://)([\d]+)\?.+', metadata.guid)
@@ -536,7 +536,7 @@ class PlexMovieAgent(Agent.Movies):
 
     # Get all of TMDb's metadata first!
     try:
-      get_tmdb_metadata(guid, lang, metadata)
+      get_tmdb_metadata(guid, lang, metadata, force)
     except Exception, e:
       Log('Unable to get TMDb movie data (in Plex Movie) for %s: %s' % (guid, str(e)))
 
@@ -566,7 +566,7 @@ class PlexMovieAgent(Agent.Movies):
       # Title.
       if not setTitle:
         d = {}
-        name,year = get_best_name_and_year(guid, lang, None, None, d)
+        name,year = get_best_name_and_year(guid, lang, None, None, d, force=force)
         if name is not None:
           metadata.title = name
 
@@ -878,11 +878,11 @@ class PlexMovieAgent(Agent.Movies):
     m = re.search('(tt[0-9]+)', metadata.guid)
     if m and not metadata.year:
       id = m.groups(1)[0]
-      (title, year) = self.findById(id, lang)
+      (title, year) = self.findById(id, lang, force)
       if year:
         metadata.year = int(year)
 
-  def findById(self, id, lang):
+  def findById(self, id, lang, force):
     title = None
     year = None
 
@@ -890,7 +890,7 @@ class PlexMovieAgent(Agent.Movies):
     url = FREEBASE_URL % (id[2:], lang)
 
     try:
-      movie = XML.ElementFromURL(url, cacheTime=CACHE_1WEEK, headers={'Accept-Encoding':'gzip'})
+      movie = XML.ElementFromURL(url, cacheTime=0 if force else CACHE_1WEEK, headers={'Accept-Encoding':'gzip'})
 
       # Title
       if len(movie.get('title')) > 0:
@@ -1017,11 +1017,11 @@ def safe_unicode(s,encoding='utf-8'):
   else:
     return str(s).decode(encoding)
 
-def get_best_name_and_year(guid, lang, fallback, fallback_year, best_name_map):
+def get_best_name_and_year(guid, lang, fallback, fallback_year, best_name_map, force=False):
   ret = (fallback, fallback_year)
 
   try:
-    tmdb_data = get_base_tmdb_data('tt%s' % guid, lang if Prefs['title'] else '')
+    tmdb_data = get_base_tmdb_data('tt%s' % guid, lang if Prefs['title'] else '', force)
 
     if tmdb_data and 'release_date' in tmdb_data:
       try: fallback_year = tmdb_data['release_date'][:4]
@@ -1077,8 +1077,8 @@ def imdb_id_from_tmdb(tmdb_id):
   return imdb_id
 
 
-def get_tmdb_metadata(id, lang, metadata):
-  metadata_dict = PerformTMDbMovieUpdate('tt%s' % id, lang, metadata)
+def get_tmdb_metadata(id, lang, metadata, force):
+  metadata_dict = PerformTMDbMovieUpdate('tt%s' % id, lang, metadata, force=force)
   return tmdb_dict_to_movie_metadata_obj(metadata_dict, metadata)
 
 
@@ -1179,31 +1179,39 @@ def tmdb_dict_to_movie_metadata_obj(metadata_dict, metadata):
 
 
 ####################################################################################################
-def get_base_tmdb_data(metadata_id, lang):
-  tmdb_dict = GetTMDBJSON(url=TMDB_MOVIE % (metadata_id, lang))
+def get_base_tmdb_data(metadata_id, lang, force=False):
+  args = {}
+  if force:
+    args['cache_time'] = 0
+
+  tmdb_dict = GetTMDBJSON(url=TMDB_MOVIE % (metadata_id, lang), **args)
 
   if not isinstance(tmdb_dict, dict) or 'overview' not in tmdb_dict or tmdb_dict['overview'] is None or tmdb_dict['overview'] == "":
     # Retry the query with no language specified if we didn't get anything from the initial request.
-    tmdb_dict = GetTMDBJSON(url=TMDB_MOVIE % (metadata_id, ''))
+    tmdb_dict = GetTMDBJSON(url=TMDB_MOVIE % (metadata_id, ''), **args)
 
   return tmdb_dict
 
 
 ####################################################################################################
-def PerformTMDbMovieUpdate(metadata_id, lang, existing_metadata):  # Shared with TheMovieDB.bundle
+def PerformTMDbMovieUpdate(metadata_id, lang, existing_metadata, force=False):  # Shared with TheMovieDB.bundle
 
   metadata = dict(id=metadata_id)
 
-  config_dict = GetTMDBJSON(url=TMDB_CONFIG, cache_time=CACHE_1WEEK * 2)
-  tmdb_dict = get_base_tmdb_data(metadata_id, lang)
+  config_dict = GetTMDBJSON(url=TMDB_CONFIG, cache_time=0 if force else CACHE_1WEEK * 2)
+  tmdb_dict = get_base_tmdb_data(metadata_id, lang, force)
+
+  jsonArgs = {}
+  if force:
+    jsonArgs['cache_time'] = 0
 
   # This additional request is necessary since full art/poster lists are not returned if they don't exactly match the language
-  tmdb_images_dict = GetTMDBJSON(url=TMDB_MOVIE_IMAGES % metadata_id)
+  tmdb_images_dict = GetTMDBJSON(url=TMDB_MOVIE_IMAGES % metadata_id, **jsonArgs)
 
   # Recommendations.
   try:
     metadata['similar'] = []
-    tmdb_rec_dict = GetTMDBJSON(url=TMDB_MOVIE_RECOMMENDATIONS % (tmdb_dict['id']))
+    tmdb_rec_dict = GetTMDBJSON(url=TMDB_MOVIE_RECOMMENDATIONS % (tmdb_dict['id']), **jsonArgs)
     for rec in tmdb_rec_dict['results']:
       metadata['similar'].append(rec['title'])
   except:

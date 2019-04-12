@@ -781,13 +781,13 @@ class TVDBAgent(Agent.TV_Shows):
 
     Log('%s - Added %d of %d extras.' % (ivaNormTitle, len(extras), len(xml.xpath('./extra'))))
 
-  def update(self, metadata, media, lang):
+  def update(self, metadata, media, lang, force=False):
     Log("def update()")
 
     tvdb_series_data = defaultdict(lambda: '')
     tvdb_series_orig_data = dict()
     try:
-      tvdb_series_orig_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_SERIES_URL % (metadata.id, lang), additionalHeaders={'Accept-Language': lang}))
+      tvdb_series_orig_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_SERIES_URL % (metadata.id, lang), additionalHeaders={'Accept-Language': lang}, cacheTime=0 if force else CACHE_1WEEK))
       tvdb_series_data.update(tvdb_series_orig_data['data'])
     except:
       Log("Bad series data, no update for TVDB id: %s (lang: %s)" % (metadata.id, lang))
@@ -798,11 +798,11 @@ class TVDBAgent(Agent.TV_Shows):
     try:
       TMDB_BASE_URL = 'http://127.0.0.1:32400/services/tmdb?uri=%s'
       url = '/find/' + metadata.id + '?external_source=tvdb_id'
-      tmdb_dict = JSON.ObjectFromURL(TMDB_BASE_URL % String.Quote(url, True), sleep=2.0, headers={'Accept': 'application/json'}, cacheTime=CACHE_1MONTH)
+      tmdb_dict = JSON.ObjectFromURL(TMDB_BASE_URL % String.Quote(url, True), sleep=2.0, headers={'Accept': 'application/json'}, cacheTime=0 if force else CACHE_1MONTH)
       tmdb_id = tmdb_dict['tv_results'][0]['id']
       
       url = '/tv/%s/recommendations' % tmdb_id
-      tmdb_dict = JSON.ObjectFromURL(TMDB_BASE_URL % String.Quote(url, True), sleep=2.0, headers={'Accept': 'application/json'}, cacheTime=CACHE_1MONTH)
+      tmdb_dict = JSON.ObjectFromURL(TMDB_BASE_URL % String.Quote(url, True), sleep=2.0, headers={'Accept': 'application/json'}, cacheTime=0 if force else CACHE_1MONTH)
 
       metadata.similar.clear()
       for rec in tmdb_dict['results']:
@@ -816,7 +816,8 @@ class TVDBAgent(Agent.TV_Shows):
       if tvdb_series_orig_data['errors']['invalidLanguage'] and lang != 'en':
         tvdb_english_series_data.update(JSON.ObjectFromString(
           GetResultFromNetwork(TVDB_SERIES_URL % (metadata.id, 'en'),
-            additionalHeaders={'Accept-Language': 'en'})
+            additionalHeaders={'Accept-Language': 'en'},
+            cacheTime=0 if force else CACHE_1WEEK)
           )['data']
         )
     except KeyError, e:
@@ -829,7 +830,7 @@ class TVDBAgent(Agent.TV_Shows):
 
     actor_data = None
     try:
-      actor_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_ACTORS_URL % metadata.id))['data']
+      actor_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_ACTORS_URL % metadata.id, cacheTime=0 if force else CACHE_1WEEK))['data']
     except Exception, e:
       Log("Bad actor data, no update for TVDB id: %s" % metadata.id)
 
@@ -856,7 +857,7 @@ class TVDBAgent(Agent.TV_Shows):
       if len(ivaNormTitle) > 0:
         try:
           req = THETVDB_EXTRAS_URL % (metadata.id, ivaNormTitle.replace(' ', '+'), -1 if metadata.originally_available_at is None else metadata.originally_available_at.year)
-          series_extra_xml = XML.ElementFromURL(req)
+          series_extra_xml = XML.ElementFromURL(req, cacheTime=0 if force else CACHE_1WEEK)
 
           self.processExtras(series_extra_xml, metadata, lang, ivaNormTitle)
 
@@ -886,7 +887,7 @@ class TVDBAgent(Agent.TV_Shows):
     try:
       while isinstance(next_page, int) or (isinstance(next_page, basestring) and next_page.isdigit()):
         next_page = int(next_page)
-        episode_data_page = JSON.ObjectFromString(GetResultFromNetwork(TVDB_EPISODES_URL % (metadata.id, next_page), cacheTime=CACHE_1HOUR * 24))
+        episode_data_page = JSON.ObjectFromString(GetResultFromNetwork(TVDB_EPISODES_URL % (metadata.id, next_page), cacheTime=0 if force else CACHE_1HOUR * 24))
         episode_data.extend(episode_data_page['data'])
         next_page = episode_data_page['links']['next']
     except:
@@ -942,7 +943,7 @@ class TVDBAgent(Agent.TV_Shows):
           tvdb_episode_details = defaultdict(lambda: '')
           tvdb_episode_orig_details = dict()
           try:
-            tvdb_episode_orig_details = JSON.ObjectFromString(GetResultFromNetwork(TVDB_EPISODE_DETAILS_URL % (episode_id, lang), additionalHeaders={'Accept-Language': lang}))
+            tvdb_episode_orig_details = JSON.ObjectFromString(GetResultFromNetwork(TVDB_EPISODE_DETAILS_URL % (episode_id, lang), additionalHeaders={'Accept-Language': lang}, cacheTime=0 if force else CACHE_1WEEK))
             tvdb_episode_details.update(tvdb_episode_orig_details['data'])
           except:
             Log("Bad episode data, no update for TVDB id: %s (lang: %s)" % (episode_id, lang))
@@ -955,7 +956,8 @@ class TVDBAgent(Agent.TV_Shows):
             if tvdb_episode_orig_details['errors']['invalidLanguage'] and lang != 'en':
               tvdb_english_episode_details.update(JSON.ObjectFromString(
                 GetResultFromNetwork(TVDB_EPISODE_DETAILS_URL % (episode_id, 'en'),
-                  additionalHeaders={'Accept-Language': 'en'})
+                  additionalHeaders={'Accept-Language': 'en'},
+                  cacheTime=0 if force else CACHE_1WEEK)
                 )['data']
               )
           except KeyError, e:
@@ -998,7 +1000,7 @@ class TVDBAgent(Agent.TV_Shows):
             thumb_file = tvdb_episode_details.get('filename')
             if thumb_file is not None and len(thumb_file) > 0:
               thumb_url = TVDB_IMG_ROOT % thumb_file
-              thumb_data = GetResultFromNetwork(thumb_url, False)
+              thumb_data = GetResultFromNetwork(thumb_url, False, cacheTime=0 if force else CACHE_1WEEK)
 
               # Check that the thumb doesn't already exist before downloading it
               valid_names.append(thumb_url)
@@ -1107,7 +1109,7 @@ class TVDBAgent(Agent.TV_Shows):
           elif len(ivaNormTitle) > 0 and metadata.id is not None and metadata.id is not "":
             req = THETVDB_EXTRAS_URL % (metadata.id, ivaNormTitle.replace(' ', '+'), -1 if metadata.originally_available_at is None else metadata.originally_available_at.year)
             req = req + '/' + str(season_num)
-            xml = XML.ElementFromURL(req)
+            xml = XML.ElementFromURL(req, cacheTime=0 if force else CACHE_1WEEK)
             self.processExtras(xml, metadata.seasons[season_num], lang, ivaNormTitle)
 
         except Ex.HTTPError, e:
