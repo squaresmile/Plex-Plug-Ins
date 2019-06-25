@@ -732,9 +732,7 @@ class FLAC(mutagen.FileType):
             if self.tags is None:
                 self.tags = block
             else:
-                # https://github.com/quodlibet/mutagen/issues/377
-                # Something writes multiple and metaflac doesn't care
-                pass
+                raise FLACVorbisError("> 1 Vorbis comment block found")
         elif block.code == CueSheet.code:
             if self.cuesheet is None:
                 self.cuesheet = block
@@ -758,7 +756,6 @@ class FLAC(mutagen.FileType):
 
     add_vorbiscomment = add_tags
 
-    @convert_error(IOError, error)
     @loadfile(writable=True)
     def delete(self, filething=None):
         """Remove Vorbis comments from a file.
@@ -767,12 +764,11 @@ class FLAC(mutagen.FileType):
         """
 
         if self.tags is not None:
-            temp_blocks = [
-                b for b in self.metadata_blocks if b.code != VCFLACDict.code]
-            self._save(filething, temp_blocks, False, padding=lambda x: 0)
-            self.metadata_blocks[:] = [
-                b for b in self.metadata_blocks
-                if b.code != VCFLACDict.code or b is self.tags]
+            self.metadata_blocks.remove(self.tags)
+            try:
+                self.save(filething, padding=lambda x: 0)
+            finally:
+                self.metadata_blocks.append(self.tags)
             self.tags.clear()
 
     vc = property(lambda s: s.tags, doc="Alias for tags; don't use this.")
@@ -844,9 +840,6 @@ class FLAC(mutagen.FileType):
         If no filename is given, the one most recently loaded is used.
         """
 
-        self._save(filething, self.metadata_blocks, deleteid3, padding)
-
-    def _save(self, filething, metadata_blocks, deleteid3, padding):
         f = StrictFileObject(filething.fileobj)
         header = self.__check_header(f, filething.name)
         audio_offset = self.__find_audio_offset(f)
@@ -861,7 +854,7 @@ class FLAC(mutagen.FileType):
         content_size = get_size(f) - audio_offset
         assert content_size >= 0
         data = MetadataBlock._writeblocks(
-            metadata_blocks, available, content_size, padding)
+            self.metadata_blocks, available, content_size, padding)
         data_size = len(data)
 
         resize_bytes(filething.fileobj, available, data_size, header)

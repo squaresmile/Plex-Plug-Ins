@@ -22,10 +22,7 @@
 
 import os
 import ctypes
-try:
-    from collections import abc
-except ImportError:
-    import collections as abc
+import collections
 
 from ._compat import text_type, PY2
 from ._fsnative import path2fsn, is_win, _fsn2legacy, fsnative
@@ -133,7 +130,7 @@ def _norm_key(key):
     return key
 
 
-class Environ(abc.MutableMapping):
+class Environ(collections.MutableMapping):
     """Dict[`fsnative`, `fsnative`]: Like `os.environ` but contains unicode
     keys and values under Windows + Python 2.
 
