@@ -1,8 +1,10 @@
-# Copyright 2013 Christoph Reiter
+# -*- coding: utf-8 -*-
+# Copyright (C) 2013  Christoph Reiter
 #
 # This program is free software; you can redistribute it and/or modify
-# it under the terms of version 2 of the GNU General Public License as
-# published by the Free Software Foundation.
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 
 import sys
 
@@ -14,6 +16,7 @@ if PY2:
     from StringIO import StringIO
     BytesIO = StringIO
     from cStringIO import StringIO as cBytesIO
+    from itertools import izip, izip_longest
 
     long_ = long
     integer_types = (int, long)
@@ -36,25 +39,31 @@ if PY2:
     exec("def reraise(tp, value, tb):\n raise tp, value, tb")
 
     def swap_to_string(cls):
-        if hasattr(cls, '__str__'):
+        if "__str__" in cls.__dict__:
             cls.__unicode__ = cls.__str__
 
-        if hasattr(cls, '__bytes__'):
+        if "__bytes__" in cls.__dict__:
             cls.__str__ = cls.__bytes__
 
         return cls
+
+    import __builtin__ as builtins
+    builtins
 
 elif PY3:
     from io import StringIO
     StringIO = StringIO
     from io import BytesIO
     cBytesIO = BytesIO
+    from itertools import zip_longest
 
     long_ = int
     integer_types = (int,)
     string_types = (str,)
     text_type = str
 
+    izip_longest = zip_longest
+    izip = zip
     xrange = range
     cmp = lambda a, b: (a > b) - (a < b)
     chr_ = lambda x: bytes([x])
@@ -80,3 +89,6 @@ elif PY3:
 
     def swap_to_string(cls):
         return cls
+
+    import builtins
+    builtins

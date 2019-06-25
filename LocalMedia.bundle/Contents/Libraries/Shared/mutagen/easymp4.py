@@ -1,13 +1,15 @@
-# Copyright 2009 Joe Wreschnig
+# -*- coding: utf-8 -*-
+# Copyright (C) 2009  Joe Wreschnig
 #
 # This program is free software; you can redistribute it and/or modify
-# it under the terms of version 2 of the GNU General Public License as
-# published by the Free Software Foundation.
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 
-from mutagen import Metadata
-from mutagen._util import DictMixin, dict_match, utf8
+from mutagen import Tags
+from mutagen._util import DictMixin, dict_match
 from mutagen.mp4 import MP4, MP4Tags, error, delete
-from ._compat import PY2, text_type
+from ._compat import PY2, text_type, PY3
 
 
 __all__ = ["EasyMP4Tags", "EasyMP4", "delete", "error"]
@@ -17,14 +19,16 @@ class EasyMP4KeyError(error, KeyError, ValueError):
     pass
 
 
-class EasyMP4Tags(DictMixin, Metadata):
-    """A file with MPEG-4 iTunes metadata.
+class EasyMP4Tags(DictMixin, Tags):
+    """EasyMP4Tags()
+
+    A file with MPEG-4 iTunes metadata.
 
     Like Vorbis comments, EasyMP4Tags keys are case-insensitive ASCII
     strings, and values are a list of Unicode strings (and these lists
     are always of length 0 or 1).
 
-    If you need access to the full MP4 metadata feature set, you should use 
+    If you need access to the full MP4 metadata feature set, you should use
     MP4, not EasyMP4.
     """
 
@@ -41,6 +45,10 @@ class EasyMP4Tags(DictMixin, Metadata):
 
     filename = property(lambda s: s.__mp4.filename,
                         lambda s, fn: setattr(s.__mp4, 'filename', fn))
+
+    @property
+    def _padding(self):
+        return self.__mp4._padding
 
     @classmethod
     def RegisterKey(cls, key,
@@ -93,7 +101,7 @@ class EasyMP4Tags(DictMixin, Metadata):
         cls.RegisterKey(key, getter, setter, deleter)
 
     @classmethod
-    def RegisterIntKey(cls, key, atomid, min_value=0, max_value=2**16-1):
+    def RegisterIntKey(cls, key, atomid, min_value=0, max_value=(2 ** 16) - 1):
         """Register a scalar integer key.
         """
 
@@ -102,7 +110,7 @@ class EasyMP4Tags(DictMixin, Metadata):
 
         def setter(tags, key, value):
             clamp = lambda x: int(min(max(min_value, x), max_value))
-            tags[atomid] = list(map(clamp, map(int, value)))
+            tags[atomid] = [clamp(v) for v in map(int, value)]
 
         def deleter(tags, key):
             del(tags[atomid])
@@ -110,7 +118,8 @@ class EasyMP4Tags(DictMixin, Metadata):
         cls.RegisterKey(key, getter, setter, deleter)
 
     @classmethod
-    def RegisterIntPairKey(cls, key, atomid, min_value=0, max_value=2**16-1):
+    def RegisterIntPairKey(cls, key, atomid, min_value=0,
+                           max_value=(2 ** 16) - 1):
         def getter(tags, key):
             ret = []
             for (track, total) in tags[atomid]:
@@ -140,7 +149,7 @@ class EasyMP4Tags(DictMixin, Metadata):
         cls.RegisterKey(key, getter, setter, deleter)
 
     @classmethod
-    def RegisterFreeformKey(cls, key, name, mean=b"com.apple.iTunes"):
+    def RegisterFreeformKey(cls, key, name, mean="com.apple.iTunes"):
         """Register a text key.
 
         If the key you need to register is a simple one-to-one mapping
@@ -150,13 +159,20 @@ class EasyMP4Tags(DictMixin, Metadata):
             EasyMP4Tags.RegisterFreeformKey(
                 "musicbrainz_artistid", "MusicBrainz Artist Id")
         """
-        atomid = b"----:" + mean + b":" + name
+        atomid = "----:" + mean + ":" + name
 
         def getter(tags, key):
             return [s.decode("utf-8", "replace") for s in tags[atomid]]
 
         def setter(tags, key, value):
-            tags[atomid] = [utf8(v) for v in value]
+            encoded = []
+            for v in value:
+                if not isinstance(v, text_type):
+                    if PY3:
+                        raise TypeError("%r not str" % v)
+                    v = v.decode("utf-8")
+                encoded.append(v.encode("utf-8"))
+            tags[atomid] = encoded
 
         def deleter(tags, key):
             del(tags[atomid])
@@ -214,54 +230,57 @@ class EasyMP4Tags(DictMixin, Metadata):
         return "\n".join(strings)
 
 for atomid, key in {
-    b'\xa9nam': 'title',
-    b'\xa9alb': 'album',
-    b'\xa9ART': 'artist',
-    b'aART': 'albumartist',
-    b'\xa9day': 'date',
-    b'\xa9cmt': 'comment',
-    b'desc': 'description',
-    b'\xa9grp': 'grouping',
-    b'\xa9gen': 'genre',
-    b'cprt': 'copyright',
-    b'soal': 'albumsort',
-    b'soaa': 'albumartistsort',
-    b'soar': 'artistsort',
-    b'sonm': 'titlesort',
-    b'soco': 'composersort',
+    '\xa9nam': 'title',
+    '\xa9alb': 'album',
+    '\xa9ART': 'artist',
+    'aART': 'albumartist',
+    '\xa9day': 'date',
+    '\xa9cmt': 'comment',
+    'desc': 'description',
+    '\xa9grp': 'grouping',
+    '\xa9gen': 'genre',
+    'cprt': 'copyright',
+    'soal': 'albumsort',
+    'soaa': 'albumartistsort',
+    'soar': 'artistsort',
+    'sonm': 'titlesort',
+    'soco': 'composersort',
 }.items():
     EasyMP4Tags.RegisterTextKey(key, atomid)
 
 for name, key in {
-    b'MusicBrainz Artist Id': 'musicbrainz_artistid',
-    b'MusicBrainz Track Id': 'musicbrainz_trackid',
-    b'MusicBrainz Album Id': 'musicbrainz_albumid',
-    b'MusicBrainz Album Artist Id': 'musicbrainz_albumartistid',
-    b'MusicIP PUID': 'musicip_puid',
-    b'MusicBrainz Album Status': 'musicbrainz_albumstatus',
-    b'MusicBrainz Album Type': 'musicbrainz_albumtype',
-    b'MusicBrainz Release Country': 'releasecountry',
+    'MusicBrainz Artist Id': 'musicbrainz_artistid',
+    'MusicBrainz Track Id': 'musicbrainz_trackid',
+    'MusicBrainz Album Id': 'musicbrainz_albumid',
+    'MusicBrainz Album Artist Id': 'musicbrainz_albumartistid',
+    'MusicIP PUID': 'musicip_puid',
+    'MusicBrainz Album Status': 'musicbrainz_albumstatus',
+    'MusicBrainz Album Type': 'musicbrainz_albumtype',
+    'MusicBrainz Release Country': 'releasecountry',
 }.items():
     EasyMP4Tags.RegisterFreeformKey(key, name)
 
 for name, key in {
-    b"tmpo": "bpm",
+    "tmpo": "bpm",
 }.items():
     EasyMP4Tags.RegisterIntKey(key, name)
 
 for name, key in {
-    b"trkn": "tracknumber",
-    b"disk": "discnumber",
+    "trkn": "tracknumber",
+    "disk": "discnumber",
 }.items():
     EasyMP4Tags.RegisterIntPairKey(key, name)
 
 
 class EasyMP4(MP4):
-    """Like :class:`MP4 <mutagen.mp4.MP4>`,
-    but uses :class:`EasyMP4Tags` for tags.
+    """EasyMP4(filelike)
 
-    :ivar info: :class:`MP4Info <mutagen.mp4.MP4Info>`
-    :ivar tags: :class:`EasyMP4Tags`
+    Like :class:`MP4 <mutagen.mp4.MP4>`, but uses :class:`EasyMP4Tags` for
+    tags.
+
+    Attributes:
+        info (`mutagen.mp4.MP4Info`)
+        tags (`EasyMP4Tags`)
     """
 
     MP4Tags = EasyMP4Tags

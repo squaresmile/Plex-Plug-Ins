@@ -1,10 +1,11 @@
-# Vorbis comment support for Mutagen
-# Copyright 2005-2006 Joe Wreschnig
-#           2013 Christoph Reiter
+# -*- coding: utf-8 -*-
+# Copyright (C) 2005-2006  Joe Wreschnig
+#                    2013  Christoph Reiter
 #
 # This program is free software; you can redistribute it and/or modify
-# it under the terms of version 2 of the GNU General Public License as
-# published by the Free Software Foundation.
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 
 """Read and write Vorbis comment data.
 
@@ -19,7 +20,7 @@ import sys
 
 import mutagen
 from ._compat import reraise, BytesIO, text_type, xrange, PY3, PY2
-from mutagen._util import DictMixin, cdata
+from mutagen._util import DictMixin, cdata, MutagenError
 
 
 def is_valid_key(key):
@@ -32,7 +33,7 @@ def is_valid_key(key):
     """
 
     if PY3 and isinstance(key, bytes):
-        raise ValueError
+        raise TypeError("needs to be str not bytes")
 
     for c in key:
         if c < " " or c > "}" or c == "=":
@@ -44,7 +45,7 @@ def is_valid_key(key):
 istag = is_valid_key
 
 
-class error(IOError):
+class error(MutagenError):
     pass
 
 
@@ -56,7 +57,7 @@ class VorbisEncodingError(error):
     pass
 
 
-class VComment(mutagen.Metadata, list):
+class VComment(mutagen.Tags, list):
     """A Vorbis comment parser, accessor, and renderer.
 
     All comment ordering is preserved. A VComment is a list of
@@ -67,13 +68,13 @@ class VComment(mutagen.Metadata, list):
     file-like object, not a filename.
 
     Attributes:
-
-    * vendor -- the stream 'vendor' (i.e. writer); default 'Mutagen'
+        vendor (text): the stream 'vendor' (i.e. writer); default 'Mutagen'
     """
 
     vendor = u"Mutagen " + mutagen.version_string
 
     def __init__(self, data=None, *args, **kwargs):
+        self._size = 0
         # Collect the args to pass to load, this lets child classes
         # override just load and get equivalent magic for the
         # constructor.
@@ -82,17 +83,18 @@ class VComment(mutagen.Metadata, list):
                 data = BytesIO(data)
             elif not hasattr(data, 'read'):
                 raise TypeError("VComment requires bytes or a file-like")
+            start = data.tell()
             self.load(data, *args, **kwargs)
+            self._size = data.tell() - start
 
     def load(self, fileobj, errors='replace', framing=True):
         """Parse a Vorbis comment from a file-like object.
 
-        Keyword arguments:
-
-        * errors:
-            'strict', 'replace', or 'ignore'. This affects Unicode decoding
-            and how other malformed content is interpreted.
-        * framing -- if true, fail if a framing bit is not present
+        Arguments:
+            errors (str): 'strict', 'replace', or 'ignore'.
+                This affects Unicode decoding and how other malformed content
+                is interpreted.
+            framing (bool): if true, fail if a framing bit is not present
 
         Framing bits are required by the Vorbis comment specification,
         but are not used in FLAC Vorbis comment blocks.
@@ -127,7 +129,8 @@ class VComment(mutagen.Metadata, list):
                         tag = tag.decode("ascii")
                     if is_valid_key(tag):
                         self.append((tag, value))
-            if framing and not ord(fileobj.read(1)) & 0x01:
+
+            if framing and not bytearray(fileobj.read(1))[0] & 0x01:
                 raise VorbisUnsetFrameError("framing bit was unset")
         except (cdata.error, TypeError):
             raise error("file is not a valid Vorbis comment")
@@ -142,17 +145,10 @@ class VComment(mutagen.Metadata, list):
         In Python 3 all keys and values have to be a string.
         """
 
-        # be stricter in Python 3
-        if PY3:
-            if not isinstance(self.vendor, text_type):
-                raise ValueError
-            for key, value in self:
-                if not isinstance(key, text_type):
-                    raise ValueError
-                if not isinstance(value, text_type):
-                    raise ValueError
-
         if not isinstance(self.vendor, text_type):
+            if PY3:
+                raise ValueError("vendor needs to be str")
+
             try:
                 self.vendor.decode('utf-8')
             except UnicodeDecodeError:
@@ -161,17 +157,22 @@ class VComment(mutagen.Metadata, list):
         for key, value in self:
             try:
                 if not is_valid_key(key):
-                    raise ValueError
-            except:
+                    raise ValueError("%r is not a valid key" % key)
+            except TypeError:
                 raise ValueError("%r is not a valid key" % key)
 
             if not isinstance(value, text_type):
+                if PY3:
+                    err = "%r needs to be str for key %r" % (value, key)
+                    raise ValueError(err)
+
                 try:
-                    value.encode("utf-8")
-                except:
-                    raise ValueError("%r is not a valid value" % value)
-        else:
-            return True
+                    value.decode("utf-8")
+                except Exception:
+                    err = "%r is not a valid value for key %r" % (value, key)
+                    raise ValueError(err)
+
+        return True
 
     def clear(self):
         """Clear all keys from the comment."""
@@ -185,9 +186,8 @@ class VComment(mutagen.Metadata, list):
         Validation is always performed, so calling this function on
         invalid data may raise a ValueError.
 
-        Keyword arguments:
-
-        * framing -- if true, append a framing bit (see load)
+        Arguments:
+            framing (bool): if true, append a framing bit (see load)
         """
 
         self.validate()
@@ -244,6 +244,10 @@ class VCommentDict(VComment, DictMixin):
         work.
         """
 
+        # PY3 only
+        if isinstance(key, slice):
+            return VComment.__getitem__(self, key)
+
         if not is_valid_key(key):
             raise ValueError
 
@@ -257,6 +261,10 @@ class VCommentDict(VComment, DictMixin):
 
     def __delitem__(self, key):
         """Delete all values associated with the key."""
+
+        # PY3 only
+        if isinstance(key, slice):
+            return VComment.__delitem__(self, key)
 
         if not is_valid_key(key):
             raise ValueError
@@ -289,6 +297,10 @@ class VCommentDict(VComment, DictMixin):
         list of Unicode or UTF-8 strings, or a single Unicode or UTF-8
         string.
         """
+
+        # PY3 only
+        if isinstance(key, slice):
+            return VComment.__setitem__(self, key, values)
 
         if not is_valid_key(key):
             raise ValueError
