@@ -112,19 +112,6 @@ def album_search(tree, album, lang, album_results, artist_guids=[], fingerprint=
   album_results.append(album_result)
   artist_guids.append(album_elm.get('parentGUID'))
 
-def add_genres(res, metadata):
-
-  metadata.genres.clear()
-  if Prefs['genre_level'] != 'None (don\'t use genres from Gracenote)':
-    genres = [genre for genre in res.xpath('//Directory[@type="album"]/Genre/@tag')]
-    if Prefs['genre_level'] == 'Coarse (10 genres)':
-      genres = genres[:1]
-    elif Prefs['genre_level'] == 'Medium (75 genres)':
-      genres = genres[:2]
-    elif Prefs['genre_level'] == 'Fine (500 genres)':
-      genres = genres[:3]
-    for genre in reversed(genres):
-      metadata.genres.add(genre)
 
 def add_posters(posters, metadata):
   valid_keys = []
@@ -268,9 +255,6 @@ class GracenoteArtistAgent(Agent.Artist):
       # Artist poster.
       gracenote_poster = res.xpath('//Directory[@type="album"]')[0].get('parentThumb')
       
-      # Genres.
-      add_genres(res, metadata)
-
     else:
       # We still need to make sure the title is set.
       metadata.title = media.title
@@ -452,9 +436,6 @@ class GracenoteAlbumAgent(Agent.Album):
    
     # Add all the posters
     add_posters(posters, metadata)
-
-    # Genres.
-    add_genres(res, metadata)
 
     # Go back and get track metadata for any additional albums if needed.
     if 'com.plexapp.agents.plexmusic://gracenote' in media.guid:

@@ -5,6 +5,7 @@
 
 from systemservice import SystemService
 import cgi
+import os
 
 UPDATE_FILE = 'AgentServicePendingUpdates.xml'
 AGENT_INFO_KEY = '_AgentService:AgentInfo'
@@ -989,7 +990,7 @@ class AgentService(SystemService):
     # Get the storage path for the bundle
     path_function = getattr(primary_metadata_cls, '_make_path')
     storage_path = path_function(base_guid)
-    
+
     # Compute which XML file we should load
     if len(parts) == 2:
       info_path = Core.storage.join_path(storage_path, '_combined', 'Info.xml')
@@ -998,9 +999,20 @@ class AgentService(SystemService):
       
     attr_name = parts[-2]
     attr_value = parts[-1]
-    
+
+    source_path = Core.storage.join_path('_combined', *parts)
+
+    # Make sure to point to the correct source when symlinks are disabled.
+    if len(os.environ.get('DISABLESYMLINKS', '')) > 0:
+      # Our folder parts look like: posters/com.plexapp.agents.lastfm_d988b208b545712057b3c035cb7ecbb44d42830c
+      if len(parts) == 2 and '_' in parts[1]:
+        # Build the original source path for the media.
+        folder_agent_and_hash = parts[1].split('_')
+        sub_path = Core.storage.join_path(parts[0], folder_agent_and_hash[1])
+        source_path = Core.storage.join_path(folder_agent_and_hash[0], sub_path)
+
     # Calculate other paths
-    attr_file_path = Core.storage.join_path(storage_path, '_combined', *parts)
+    attr_file_path = Core.storage.join_path(storage_path, source_path)
     dl_file_path = Core.storage.join_path(storage_path, '_stored', *parts)
     Core.storage.make_dirs(Core.storage.dir_name(dl_file_path))
     
