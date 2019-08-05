@@ -11,17 +11,18 @@ class AudioHelper(object):
 
 
 def AudioHelpers(filename):
-  filename = helpers.unicodize(filename)
-  try:
-    tag = MFile(filename, None, True)
-  except Exception, e:
-    Log('Error getting file details for %s: %s' % (filename, e))
-    return None
+  if len(filename) > 0:
+    filename = helpers.unicodize(filename)
+    try:
+      tag = MFile(filename, None, True)
+    except Exception, e:
+      Log('Error getting file details for %s: %s' % (filename, e))
+      return None
 
-  if tag is not None:
-    for cls in [ ID3AudioHelper, MP4AudioHelper, FLACAudioHelper, OGGAudioHelper, ASFAudioHelper ]:
-      if cls.is_helper_for(type(tag).__name__):
-        return cls(filename)
+    if tag is not None:
+      for cls in [ ID3AudioHelper, MP4AudioHelper, FLACAudioHelper, OGGAudioHelper, ASFAudioHelper ]:
+        if cls.is_helper_for(type(tag).__name__):
+          return cls(filename)
   return None
 
 
