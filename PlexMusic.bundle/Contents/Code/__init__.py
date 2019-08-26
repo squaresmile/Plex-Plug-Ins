@@ -304,7 +304,14 @@ class GracenoteArtistAgent(Agent.Artist):
       
     # If we didn't get an artist summary, try to get one from Last.FM.
     if lastfm_artist is not None and (metadata.summary is None or len(metadata.summary) == 0):
-      metadata.summary = String.DecodeHTMLEntities(String.StripTags(lastfm_artist['bio']['content'][:lastfm_artist['bio']['content'].find('\n\n')]).strip())
+      try:
+        metadata.summary = String.DecodeHTMLEntities(String.StripTags(lastfm_artist['bio']['content'][:lastfm_artist['bio']['content'].find('\n\n')]).strip())
+        if metadata.summary is not None:
+          index = metadata.summary.find('Read more on Last.fm')
+          if index != -1:
+            metadata.summary = metadata.summary[0:index]
+      except:
+        Log('Issue getting artist bio.')
 
     # Add posters.
     add_posters(posters, metadata)
@@ -467,6 +474,7 @@ class GracenoteAlbumAgent(Agent.Album):
       
       if gracenote_track:
         metadata_track.tempo = int(gracenote_track.get('bpm') or -1)
+        metadata_track.title = gracenote_track.get('title')
 
       # See if it's the top tracks.
       for popular_track in most_popular_tracks.keys():

@@ -21,7 +21,6 @@ class Track(MetadataRecord):
   key.is_synthetic
 
   title                     = Template.String()
-  title.is_synthetic
 
   title_sort                = Template.String()
 

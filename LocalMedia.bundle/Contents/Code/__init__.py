@@ -366,6 +366,13 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
               track_sort_title = audio_helper.get_track_sort_title()
               if track_sort_title and hasattr(metadata.tracks[track_key], 'title_sort'):
                 metadata.tracks[track_key].title_sort = track_sort_title
+
+            # Track title
+            if hasattr(audio_helper, 'get_track_title'):
+              track_title = audio_helper.get_track_title()
+              if track_title is not None:
+                track_title = str(track_title).strip('\0')
+                metadata.tracks[track_key].title = track_title
           except:
             pass
 

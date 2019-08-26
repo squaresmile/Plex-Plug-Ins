@@ -91,6 +91,9 @@ class ID3AudioHelper(AudioHelper):
   def get_track_sort_title(self):
     return self.tags.get('TSOT')
 
+  def get_track_title(self):
+    return self.tags.get('TIT2')
+
   def get_track_genres(self):
     genre_list = []
     try:
@@ -178,6 +181,13 @@ class MP4AudioHelper(AudioHelper):
       tags = MFile(self.filename, easy=True)
       return tags.get('titlesort')[0]  # 'sonm'
     except:      
+      return None
+
+  def get_track_title(self):
+    try:
+      tags = MFile(self.filename, easy=True)
+      return tags.get('title')[0]  # 'sonm'
+    except:
       return None
 
   def get_album_sort_title(self):
@@ -270,6 +280,13 @@ class FLACAudioHelper(AudioHelper):
   @classmethod
   def is_helper_for(cls, tagType):
     return tagType in ['FLAC']
+
+  def get_track_title(self):
+    try:
+      tags = MFile(self.filename)
+      return tags.get('title')[0]
+    except:
+      return None
 
   def process_metadata(self, metadata):
 
