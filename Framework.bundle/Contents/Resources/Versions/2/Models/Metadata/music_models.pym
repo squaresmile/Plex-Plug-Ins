@@ -29,6 +29,9 @@ class Track(MetadataRecord):
   
   index                     = Template.Integer()
 
+  disc_index                = Template.Integer()
+  track_index               = Template.Integer()
+
   artist                    = Template.String()
   artist.is_synthetic
   artist.xml_attr_name      = 'grandparentTitle'
@@ -71,6 +74,8 @@ class Track(MetadataRecord):
   source_title              = Template.String()
   source_title.is_synthetic
 
+  original_title            = Template.String()
+
   extras                    = Template.ObjectContainer(MusicVideo, LyricMusicVideo)
   
   lyrics                    = Template.ProxyContainer(Template.Proxy.Media, Template.Proxy.Remote, Template.Proxy.LocalFile)
@@ -104,7 +109,16 @@ class Artist(MetadataModel):
   
   thumb                     = Template.String()
   thumb.is_synthetic
-  
+
+  genres                    = Template.Set(Template.String())
+  genres.xml_tag            = 'Genre'
+
+  moods                     = Template.Set(Template.String())
+  moods.xml_tag             = 'Mood'
+
+  styles                     = Template.Set(Template.String())
+  styles.xml_tag             = 'Style'
+
   art_url                   = Template.String()
   art_url.is_synthetic
   art_url.synthetic_name    = 'art'
@@ -132,6 +146,12 @@ class Album(object):
   
   genres                    = Template.Set(Template.String())
   genres.xml_tag            = 'Genre'
+
+  styles                     = Template.Set(Template.String())
+  styles.xml_tag             = 'Style'
+
+  moods                     = Template.Set(Template.String())
+  moods.xml_tag             = 'Mood'
 
   # Interface settings.
   

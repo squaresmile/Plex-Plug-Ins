@@ -64,15 +64,10 @@ class BundleCombiner(object):
       #TODO: Account for external values
       if rule_action == 'override':
         for source in p_sources:
+          # Treat special DEL character as blank.
+          if source in candidates and candidates[source].text == '\x7f':
+            candidates[source].text = ''
           if source in candidates and candidates[source].text is not None:
-            # Check for zero-value numeric elements.
-            try:
-              f = float(candidates[source].text)
-              if f == 0:
-                continue
-            except:
-              pass
-
             els = [candidates[source]]
 
             # Add any linked attributes to the returned list
@@ -426,7 +421,7 @@ class BundleCombiner(object):
     else:
       raise Framework.exceptions.FrameworkException("Unable to combine object of type "+str(type(attr)))
 
-  def _apply_sources(self, p_sources, config_identifier, config_el, candidates={}):
+  def _apply_sources(self, p_sources, config_identifier, config_el, candidates={}, respect_tags=False):
     sources_config = config_el.xpath('sources')
     if len(sources_config) > 0:
       sc_el = sources_config[0]
@@ -447,7 +442,12 @@ class BundleCombiner(object):
       for identifier in candidates.keys():
         if identifier not in p_sources:
           p_sources.append(identifier)
-      
+
+    # Special case for "respect tags", bump localmedia to the top of the list.
+    if respect_tags and 'com.plexapp.agents.localmedia' in p_sources:
+      p_sources.remove('com.plexapp.agents.localmedia')
+      p_sources.insert(0, 'com.plexapp.agents.localmedia')
+
     return p_sources
     
   def _get_rules(self, config_el):
@@ -457,11 +457,11 @@ class BundleCombiner(object):
       rules[attr_name] = attr_el
     return rules
         
-  def _combine_object(self, root_path, internal_path, config_identifier, config_el, candidates, p_sources, template, parts=[], cls=None, agent_info={}):
+  def _combine_object(self, root_path, internal_path, config_identifier, config_el, candidates, p_sources, template, parts=[], cls=None, agent_info={}, respect_tags=False):
     out_path = os.path.join(root_path, '_combined', internal_path)
     
     # Apply any source changes specified in the config file
-    p_sources = self._apply_sources(p_sources, config_identifier, config_el, candidates)
+    p_sources = self._apply_sources(p_sources, config_identifier, config_el, candidates, respect_tags)
 
     # Check for rules to apply to attributes
     rules = self._get_rules(config_el)
@@ -497,7 +497,7 @@ class BundleCombiner(object):
           source_el_list = candidates[source].xpath(name)
           if len(source_el_list) > 0:
             attr_candidates[source] = source_el_list[0]
-        
+
         attr_template = getattr(template, name)
         setattr(attr_template, '__name__', name)
         attr_els = self._combine_attr(root_path, os.path.join(internal_path, name), attr, config_identifier, rule, attr_candidates, list(p_sources), attr_template, parts, cls, agent_info)
@@ -506,7 +506,7 @@ class BundleCombiner(object):
         
     return el
     
-  def _combine_file(self, root_path, internal_path, config_identifier, config_el, a_sources, p_sources, template, parts=[], cls=None, agent_info={}):
+  def _combine_file(self, root_path, internal_path, config_identifier, config_el, a_sources, p_sources, template, parts=[], cls=None, agent_info={}, respect_tags=False):
     candidates = {}
     for a_source in a_sources:
       file_path = os.path.join(root_path, a_source, internal_path, 'Info.xml')
@@ -514,9 +514,16 @@ class BundleCombiner(object):
         source_xml_str = self._core.storage.load(file_path)
         source_el = self._core.data.xml.from_string(source_xml_str, remove_blank_text=True)
         candidates[a_source] = source_el
-        
-    return self._combine_object(root_path, internal_path, config_identifier, config_el, candidates, list(p_sources), template, parts, cls, agent_info)
-    
+
+    return self._combine_object(root_path, internal_path, config_identifier, config_el, candidates, list(p_sources), template, parts, cls, agent_info, respect_tags)
+
+  def _canonical_class_name(self, cls):
+    if cls.__name__ == 'LegacyArtist':
+      return 'Artist'
+    if cls.__name__ == 'LegacyAlbum':
+      return 'Album'
+    return cls.__name__
+
   def name_for_class(self, cls):
     return Framework.utils.plural(cls._model_name.replace('_', ' '))
     
@@ -551,7 +558,7 @@ class BundleCombiner(object):
     return config_el
   
 
-  def combine(self, cls, config_identifier, guid, agent_info={}):
+  def combine(self, cls, config_identifier, guid, agent_info={}, respect_tags=False):
     identifier, path = guid.split('://')
     qs = ''
     if path.find('?') != -1:
@@ -563,7 +570,7 @@ class BundleCombiner(object):
     # If this is a bundle from one of those agents, disable support for partial combination and
     # accept the GUID as provided.
     
-    agents_that_happen_to_do_things_a_little_differently = ['com.plexapp.agents.lastfm', 'com.plexapp.agents.allmusic', 'com.plexapp.agents.plexmusic']
+    agents_that_happen_to_do_things_a_little_differently = ['mbid', 'plex', 'com.plexapp.agents.lastfm', 'com.plexapp.agents.allmusic', 'com.plexapp.agents.plexmusic']
     
     if identifier in agents_that_happen_to_do_things_a_little_differently or cls._template.use_hashed_map_paths:
       # Define an empty list of parts
@@ -610,8 +617,8 @@ class BundleCombiner(object):
     if len(parts) == 0:
       self._core.storage.remove_tree(out_path)
       out_file_path = self._core.storage.join_path(out_path, 'Info.xml')
-    
-    el = self._combine_file(root_path, '', config_identifier, config_el, available_sources, preferred_sources, template, parts, cls, agent_info)
+
+    el = self._combine_file(root_path, '', config_identifier, config_el, available_sources, preferred_sources, template, parts, cls, agent_info, respect_tags)
 
     # Whack stored files we're not meant to persist
     def whack_stored(combined_path, stored_path):
@@ -629,11 +636,7 @@ class BundleCombiner(object):
           info = agent_info.get(ident, [])
           media_type_done = []
           for info_dict in info:
-            clsname = cls.__name__
-            if clsname == 'LegacyArtist':
-              clsname = 'Artist'
-            if clsname == 'LegacyAlbum':
-              clsname = 'Album'
+            clsname = self._canonical_class_name(cls)
             if clsname in info_dict.get('media_types', []) and clsname not in media_type_done:
               media_type_done.append(clsname)
               persist_stored_files = info_dict.get('persist_stored_files', True)
@@ -658,6 +661,12 @@ class BundleCombiner(object):
     # Write the root XML file unless we're in a partial combine
     if len(parts) == 0:
       xml_str = self._core.data.xml.to_string(el)
+
       Framework.utils.makedirs(out_path)
       self._core.storage.save(out_file_path, xml_str)
-    
+
+      # For Artists and Albums, we return the XML for POSTing directly to PMS.
+      clsname = self._canonical_class_name(cls)
+      if clsname == 'Artist' or clsname == 'Album':
+        return xml_str
+

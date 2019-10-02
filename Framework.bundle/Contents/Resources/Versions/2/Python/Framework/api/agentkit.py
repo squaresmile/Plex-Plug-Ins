@@ -4,7 +4,7 @@
 #
 
 import Framework
-import os, weakref
+import os, weakref, urlparse
 
 from base import BaseKit
 
@@ -1050,12 +1050,23 @@ class AgentKit(BaseKit):
               obj._id = id
             
           media = None
+          prefs = {}
           try:
             if dbid:
               media = Media.TreeForDatabaseID(dbid,
                                               level_names=cls._level_names,
                                               parent_id=parentID if version > 0 else None,
                                               level_attribute_keys=cls._level_attribute_keys)
+
+              # Start with defaults and update with incoming values.
+              keys = ['artistBios', 'albumReviews', 'popularTracks', 'concerts', 'genres', 'albumPosters']
+              prefs = dict((key, 1) for key in keys)
+
+              if hasattr(media, 'librarySectionPrefs'):
+                # Read prefs and convert values to integers.
+                incomingPrefs = dict(urlparse.parse_qsl(media.librarySectionPrefs))
+                incomingPrefs = { k : int(v) for k, v in incomingPrefs.items() }
+                prefs.update(incomingPrefs)
             else:
               media = FakeMediaObject()
               self._core.log.error("No database ID provided - faking the media object")
@@ -1072,6 +1083,8 @@ class AgentKit(BaseKit):
               kwargs['child_id'] = child_id
             if Framework.utils.function_accepts_arg(agent.update, 'periodic'):
               kwargs['periodic'] = periodic
+            if Framework.utils.function_accepts_arg(agent.update, 'prefs'):
+              kwargs['prefs'] = prefs
 
             agent.update(obj, media, lang, **kwargs)
           except:

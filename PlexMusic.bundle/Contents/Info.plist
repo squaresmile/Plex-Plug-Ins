@@ -3,12 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.plexapp.agents.plexmusic</string>
+	<string>tv.plex.agents.music</string>
 	<key>PlexAgentAttributionText</key>
-	<string>
-		Plex Premium Music is powered by &lt;a href=&quot;http://www.last.fm/&quot;&gt;Last.fm&lt;/a&gt;
-		with additional content from &lt;a href=&quot;http://www.discogs.com/&quot;&gt;Discogs&lt;/a&gt; and &lt;a href=&quot;http://www.songkick.com/&quot;&gt;songkick&lt;/a&gt;.
-	</string>
+	<string></string>
 	<key>PlexFrameworkVersion</key>
 	<string>2</string>
 	<key>PlexPluginClass</key>

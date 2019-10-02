@@ -56,7 +56,7 @@ class LyricFindAlbumAgent(Agent.Album):
   name = 'LyricFind'
   languages = [Locale.Language.NoLanguage]
   primary_provider = False
-  contributes_to = ['com.plexapp.agents.plexmusic', 'com.plexapp.agents.localmedia', 'com.plexapp.agents.lastfm']
+  contributes_to = ['com.plexapp.agents.plexmusic', 'com.plexapp.agents.localmedia', 'com.plexapp.agents.lastfm', 'tv.plex.agents.music', 'org.musicbrainz.agents.music']
 
   def search(self, results, media, lang, manual=False, tree=None):
     results.add(SearchResult(id = 'null', score = 100))

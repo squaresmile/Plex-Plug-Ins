@@ -578,7 +578,13 @@ class ProxyContainerObject(MapObject, Serializable, Combinable):
     if value._proxy_name not in self._template._accepted_proxies:
       raise Framework.exceptions.FrameworkException("Proxy type '%s' is not accepted by this attribute." % value._proxy_name)
     MapObject.__setitem__(self, name, value)
-      
+
+  def hasSortOrder(self, name):
+    name = unicode(name)
+    if name in self._items:
+      return self._items[name]._obj._sort_order != None
+    return False
+
 class SetItem(ItemObject, Serializable):
   def _serialize(self, path):
     if not isinstance(self._obj, Serializable):
@@ -746,4 +752,3 @@ class RecordObject(AttributeObject, AttributeSet, Serializable, Combinable):
         if attr_el.tag in self._attributes:
           attr = self._attributes[attr_el.tag]
           attr._deserialize(os.path.join(path, attr_el.tag), attr_el)
-        

@@ -38,8 +38,11 @@ class AgentService(SystemService):
     SystemService.__init__(self, system)
     self.processing_updates = {}
     self.pending_updates = []
+    self.guid_mutexes = {}
+    self.guid_mutexes_lock = Thread.Lock()
     self.update_lock = Thread.Lock()
     self.agent_lock = Thread.Lock()
+    
     self.searching = False
     if AGENT_INFO_KEY in Dict:
       self.agent_info = Dict[AGENT_INFO_KEY]
@@ -276,16 +279,16 @@ class AgentService(SystemService):
       self.searching = False
 
       
-  def update(self, mediaType, guid, id=None, parentGUID=None, force=False, agent=None, async=True, parentID=None, libraryAgent=None, periodic=False):
+  def update(self, mediaType, guid, id=None, parentGUID=None, force=False, agent=None, async=True, parentID=None, libraryAgent=None, periodic=False, respectTags=False):
     """
       Matches a GUID with an agent and queues an update task.
     """
-    
     try:
       dbid = id
       force = (force == '1' or force == True)
       async = (async == '1' or async == True)
       periodic = (periodic == '1' or periodic == True)
+      respect_tags = (respectTags == '1' or respectTags == True)
       task_kwargs = None
       
       # Parse the GUID.
@@ -311,11 +314,11 @@ class AgentService(SystemService):
         
       self.update_lock.acquire()
       try:
-        # Compare the GUID of each item in the pending update list, and only add this record if it isn't found
+        # Compare the database IDs of each item in the pending update list, and only add this record if it isn't found
         this_record = (mediaType, guid, dbid, parentGUID)
         record_found = False
         for record in self.pending_updates:
-          if record[1] == guid:
+          if record[2] == dbid:
             record_found = True
             break
             
@@ -339,6 +342,7 @@ class AgentService(SystemService):
             parentID = parentID,
             libraryAgent = libraryAgent,
             periodic = periodic,
+            respect_tags = respect_tags
           )
           
           # If operating asynchronously, add a task to the queue. Synchronous operation is handled
@@ -364,7 +368,7 @@ class AgentService(SystemService):
     except:
       Core.log_except(None, "Exception in update request handler")
       return InitiateUpdateResponse(details=Plugin.Traceback(), **AgentResponse.UnhandledException)
-      
+
   def get_relpath(self, media_type, identifier, guid):
     # Create an access point to the primary agent's class
     primary_access_point = self.accessor.get_access_point(identifier, read_only=True)
@@ -376,10 +380,27 @@ class AgentService(SystemService):
       return None
       
       
-  def update_task(self, mediaType, media_type, identifier, guid, id, lang, dbid, parentGUID, force, agent, async, parentID, libraryAgent=None, periodic=False):
+  def update_task(self, mediaType, media_type, identifier, guid, id, lang, dbid, parentGUID, force, agent, async, parentID, libraryAgent=None, periodic=False, respect_tags=False):
     """
       Updates metadata for a given guid in the primary agent and any contributing agents.
     """
+        
+    # Create or create a lock for the GUID.
+    self.guid_mutexes_lock.acquire()
+    if guid not in self.guid_mutexes:
+      self.guid_mutexes[guid] = [Thread.Lock(), 1]
+    else:
+      self.guid_mutexes[guid][1] = self.guid_mutexes[guid][1] + 1
+
+    guid_mutex = self.guid_mutexes[guid][0]
+    guid_count = self.guid_mutexes[guid][1]
+    self.guid_mutexes_lock.release()
+    
+    # Acquire it.
+    Log.Debug("Acquiring GUID mutex for %s (%s) (count is now %d)", guid, dbid, guid_count)
+    guid_mutex.acquire()
+    Log.Debug("Acquired GUID mutex for %s (%s)", guid, dbid)
+
     Log.Info('Preparing metadata for %s in %s (%s)', media_type, identifier, id)
 
     @spawn
@@ -389,8 +410,8 @@ class AgentService(SystemService):
         HTTP.Request(url, cacheTime=0, immediate=True)
       except:
         Log.Exception('Exception notifying the media server')
-    
-    self.processing_updates[guid] = "Starting update task"
+
+    self.processing_updates[dbid] = "Starting update task"
     try:
       try:
         full_guid = guid
@@ -399,7 +420,7 @@ class AgentService(SystemService):
         combiner = self.get_combiner(lang)
         
         # Parse the base GUID and set status.
-        self.processing_updates[guid] = "Updating metadata from the primary agent"
+        self.processing_updates[dbid] = "Updating metadata from the primary agent"
 
         version = self.agent_get_version(libraryAgent or identifier, media_type)
 
@@ -408,13 +429,13 @@ class AgentService(SystemService):
           self.agent_update_metadata(identifier, media_type, guid, id, lang, dbid, parentGUID, force, version, parentID, periodic)
     
         # Create an access point to the primary agent's data
-        self.processing_updates[guid] = "Loading the primary agent's metadata"
+        self.processing_updates[dbid] = "Loading the primary agent's metadata"
         primary_access_point = self.accessor.get_access_point(identifier, read_only=True)
         primary_metadata_cls = getattr(primary_access_point, self.agent_model_name(identifier, media_type, libraryAgent))
         primary_metadata = primary_metadata_cls[guid]
     
         # Copy primary metadata attributes & use them as search args
-        self.processing_updates[guid] = "Creating hints from primary metadata"
+        self.processing_updates[dbid] = "Creating hints from primary metadata"
         kwargs = dict()
         kwargs['primary_agent'] = identifier
         kwargs['guid'] = guid
@@ -442,7 +463,7 @@ class AgentService(SystemService):
           try:
             @locks(self.agent_info)
             def check_agent():
-              self.processing_updates[guid] = "Checking agent %s" % agent_identifier
+              self.processing_updates[dbid] = "Checking agent %s" % agent_identifier
               if agent in (None, agent_identifier) and agent_identifier in Core.messaging.plugin_list():
                 if self.agent_handles_type(agent_identifier, media_type, primary_only=False):
                   return True
@@ -460,7 +481,7 @@ class AgentService(SystemService):
 
                 # Otherwise, attempt to search for a match
                 else:
-                  self.processing_updates[guid] = "Searching for matches in %s" % agent_identifier
+                  self.processing_updates[dbid] = "Searching for matches in %s" % agent_identifier
                   results = self.agent_search(agent_identifier, media_type, lang, False, kwargs, version, primary=False)
                   agent_id = None
 
@@ -500,7 +521,7 @@ class AgentService(SystemService):
 
                     
               if update and (self.agent_supports_version(agent_identifier, media_type, version)):
-                self.processing_updates[guid] = "Updating in %s" % agent_identifier
+                self.processing_updates[dbid] = "Updating in %s" % agent_identifier
    
                 task = Core.runtime.taskpool.add_task(
                   f = self.agent_update_metadata,
@@ -538,7 +559,7 @@ class AgentService(SystemService):
             continue
             
         # Combine the metadata according to the combination rules      
-        self.processing_updates[guid] = "Combining"
+        self.processing_updates[dbid] = "Combining"
 
         model_name = self.agent_model_name(identifier, media_type, libraryAgent)
         metadata_class = getattr(self.access_point, model_name)
@@ -547,7 +568,7 @@ class AgentService(SystemService):
         else:
           bundle_guid = full_guid
 
-        combiner.combine(metadata_class, libraryAgent or identifier, bundle_guid, self.agent_info)
+        xml = combiner.combine(metadata_class, libraryAgent or identifier, bundle_guid, self.agent_info, respect_tags)
         
         # Combine subtitles for video types.
         if int(mediaType) in (1, 2, 3, 4):
@@ -563,9 +584,10 @@ class AgentService(SystemService):
       except:
         bundle_guid = full_guid
         success = False
+        xml = None
         Core.log_except(None, "Exception in update for %s", guid)
       
-      self.processing_updates[guid] = "Notifying the media server"
+      self.processing_updates[dbid] = "Notifying the media server"
       
       # Notify the media server
       notify_kwargs = dict(
@@ -576,7 +598,8 @@ class AgentService(SystemService):
         force = force,
         success = success,
         async = async,
-        dbid = dbid
+        dbid = dbid,
+        xml = xml
       )
       
       if async:
@@ -590,7 +613,7 @@ class AgentService(SystemService):
         # Try to find a record in the pending updates list with a matching GUID - if found, remove it
         record_to_remove = None
         for record in self.pending_updates:
-          if record[1] == full_guid:
+          if record[2] == dbid:
             record_to_remove = record
             break
             
@@ -603,9 +626,20 @@ class AgentService(SystemService):
       finally:
         self.update_lock.release()
       
-      self.processing_updates[guid] = "Done"
+      self.processing_updates[dbid] = "Done"
     finally:
-      del self.processing_updates[guid]
+      del self.processing_updates[dbid]
+
+      # Finally, release GUID mutex.
+      Log.Debug("Releasing GUID mutex for %s", guid)
+      guid_mutex.release()
+
+      self.guid_mutexes_lock.acquire()
+      self.guid_mutexes[guid][1] = self.guid_mutexes[guid][1] - 1
+      if self.guid_mutexes[guid][1] == 0:
+        Log.Debug("We're done with the mutex for %s", guid)
+        del self.guid_mutexes[guid]
+      self.guid_mutexes_lock.release()
       
   def combine_subtitles(self, combiner, cls, media_type, identifier, full_guid, dbid):
     def dlog(*args):
@@ -721,7 +755,7 @@ class AgentService(SystemService):
       except:
         Log.Error("Exception combining subtitles")
      
-  def notify_thread(self, mediaType, media_type, identifier, guid, force, success, async, dbid):
+  def notify_thread(self, mediaType, media_type, identifier, guid, force, success, async, dbid, xml):
     """
       Notifies the media server when a bundle gets updated.
     """
@@ -743,7 +777,7 @@ class AgentService(SystemService):
       else:
         url += '0'
       url += '&async=%d' % (1 if async else 0)
-      HTTP.Request(url, cacheTime=0, immediate=True)
+      HTTP.Request(url, cacheTime=0, immediate=True, data=xml)
     except:
       Log.Exception('Exception notifying the media server')
       
@@ -1113,7 +1147,15 @@ class AgentService(SystemService):
     if identifier == 'local':
       identifier = 'com.plexapp.agents.localmedia'
       lang = 'xn'
-    
+
+    # New-fangled, need to map GUID prefix (plex://) to agent identifier.
+    if identifier == 'plex' and root_type in (8, 9):
+      identifier = 'tv.plex.agents.music'
+
+    # New-fangled, need to map MBID prefixes to agent identifer.
+    if identifier == 'mbid' and root_type in (8, 9):
+      identifier = 'org.musicbrainz.agents.music'
+
     return (root_type, identifier, id, lang, base_guid)
 
   def agent_model_name(self, identifier, media_type, library_agent=None):
@@ -1269,6 +1311,10 @@ class AgentService(SystemService):
       if state: return "Locked"
       else: return "Unlocked"
       
+    self.guid_mutexes_lock.acquire()
+    guid_mutexes = len(self.guid_mutexes)
+    self.guid_mutexes_lock.release()
+
     def format_dict(dct):
       r = "{\n"
       for k in dct:
@@ -1287,6 +1333,7 @@ class AgentService(SystemService):
     r += "-------------------\n" 
     r += "Update queue size   : %d\n" % self.queue.size
     r += "Notify queue size   : %d\n" % self.notify_queue.size
+    r += "Update mutexes:     : %d\n" % guid_mutexes
     r += "\n"
     r += "Info lock state     : %s\n" % lock_state(self.agent_info)
     r += "Update lock state   : %s\n" % lock_state(self.pending_updates)

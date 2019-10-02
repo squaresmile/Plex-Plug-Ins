@@ -27,7 +27,7 @@ MB_NS = {'a': 'http://musicbrainz.org/ns/mmd-2.0#'}
 MB_HEADERS = {'User-Agent':'Plex Music Agent/1.0 (http://plex.tv)'}
 
 ARTWORK_SIZE_RANKING = { 'mega':0 , 'extralarge':1 , 'large':2 } # Don't even try to add 'medium' or 'small' artwork.
-VARIOUS_ARTISTS_POSTER = 'http://userserve-ak.last.fm/serve/252/46209667.png'
+VARIOUS_ARTISTS_POSTER = 'https://music.plex.tv/pixogs/various_artists_poster.jpg'
 
 # Tunables.
 ARTIST_MATCH_LIMIT = 9 # Max number of artists to fetch for matching purposes.
@@ -423,8 +423,11 @@ class LastFmAlbumAgent(Agent.Album):
 
     Log('Found ' + str(len(albums)) + ' albums...')
 
+    # Limit to 10 albums.
+    albums = albums[:10]
     for album in albums:
-      results.Append(MetadataSearchResult(id = album['id'], name = album['name'], lang = album['lang'], score = album['score']))
+      if album['score'] > 0:
+        results.Append(MetadataSearchResult(id = album['id'], name = album['name'], lang = album['lang'], score = album['score']))
 
   # Score a list of albums, return a fresh list of scored matches above the ALBUM_MATCH_MIN_SCORE threshold.
   def score_albums(self, media, lang, albums, manual=False):
@@ -754,7 +757,7 @@ def GetArtistSimilar(artist_id, lang='en'):
     Log('Exception getting similar artists.')
     return []
 
-
+@expose
 def GetArtistEventsFromSongkickById(artist_mbid=None, artist_songkickid = None):
   url = None
   if artist_mbid:
