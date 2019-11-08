@@ -487,11 +487,6 @@ class TVDBAgent(Agent.TV_Shows):
       if manual and SVmediaShowYear['normal'] != SVmediaShowYear['normalNoYear']:
         self.exact_tvdb_match_with_fallback(SVmediaShowYear['normalNoYear'], media, results, lang)
 
-    if not len(results) or results[0].score <= GOOD_MATCH_THRESHOLD or manual:
-      Log('---- UMP RESULTS MAP ----')
-      try: self.perform_ump_tv_search(results, media, lang, manual)
-      except: Log('Unable to get any results from UMP for %s, no worries...' % media.name)
-
     self.dedupe(results)
 
     #hunt for duplicate shows with different years

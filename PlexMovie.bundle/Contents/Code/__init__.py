@@ -487,11 +487,6 @@ class PlexMovieAgent(Agent.Movies):
       Log('---- TMDb RESULTS MAP ----')
       continueSearch = self.perform_tmdb_movie_search(results, media, lang, manual, True)
 
-    if manual or continueSearch:
-      Log('---- UMP RESULTS MAP ----')
-      try: self.perform_ump_movie_search(results, media, lang, plexHashes, manual)
-      except: Log('Unable to get any results from UMP for %s, no worries...' % media.name)
-
     results.Sort('score', descending=True)
     
     # Finally, de-dupe the results.
