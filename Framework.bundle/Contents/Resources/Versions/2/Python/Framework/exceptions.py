@@ -3,12 +3,11 @@
 import Framework
 import sys
 
-URLError = Framework.utils.ps_import('urllib2').URLError
-HTTPError = Framework.utils.ps_import('urllib2').HTTPError
-IncompleteRead = Framework.utils.ps_import('httplib').IncompleteRead
-
+from httplib import IncompleteRead
 from socket import timeout as SocketTimeout
 from socket import error as SocketError
+from urllib2 import URLError
+from urllib2 import HTTPError
 
 
 class FrameworkException(Exception): pass

@@ -21,7 +21,7 @@ TVDB_SERIES_IMG_INFO_URL = '%s/series/%%s/images?lang=%%s' % TVDB_V2_PROXY_SITE
 TVDB_SERIES_IMG_QUERY_URL = '%s/series/%%s/images/query?keyType=%%s&lang=%%s' % TVDB_V2_PROXY_SITE
 TVDB_EPISODES_URL = '%s/series/%%s/episodes?page=%%s' % TVDB_V2_PROXY_SITE
 TVDB_EPISODE_DETAILS_URL = '%s/episodes/%%s?lang=%%s' % TVDB_V2_PROXY_SITE
-TVDB_IMG_ROOT = '%s/banners/%%s' % TVDB_BASE_URL
+TVDB_IMG_ROOT = 'https://artworks.thetvdb.com/banners/%s'
 
 GOOGLE_JSON_TVDB = 'https://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q=%s+"thetvdb.com"+series+%s'
 GOOGLE_JSON_TVDB_TITLE = 'https://ajax.googleapis.com/ajax/services/search/web?v=1.0&rsz=large&q=%s+"thetvdb.com"+series+info+%s'

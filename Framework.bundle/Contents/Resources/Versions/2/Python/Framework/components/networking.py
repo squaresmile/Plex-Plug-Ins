@@ -14,14 +14,13 @@ import random
 import time
 import sys
 import base64
+import urllib2
+import httplib
 
 from base import BaseComponent
 
-urllib2 = Framework.utils.ps_import('urllib2')
-httplib = Framework.utils.ps_import('httplib')
+GLOBAL_DEFAULT_TIMEOUT = socket._GLOBAL_DEFAULT_TIMEOUT
 
-GLOBAL_DEFAULT_TIMEOUT = httplib._GLOBAL_DEFAULT_TIMEOUT if sys.platform != 'win32' else socket._GLOBAL_DEFAULT_TIMEOUT
-  
 import cStringIO as StringIO
 
 import cerealizer
@@ -45,28 +44,6 @@ class HeaderDictionary(dict):
     name = '-'.join(parts)
     dict.__setitem__(self, name, value)
 
-  def do_handshake(self):
-    while True:
-      try:
-        self._con.do_handshake()
-        break
-      except SSL.WantReadError:
-        select.select([self._sock], [], [], 1.0)
-        
-  def recv(self, count):
-    while True:
-      try:
-        return self._con.recv(count)
-      except SSL.WantReadError:
-        select.select([self._sock], [], [], 1.0)
-        
-  def disconnect(self):
-    self._sock.shutdown(socket.SHUT_RDWR)
-    self._sock.close()
-        
-  def __getattr__(self, name):
-    return getattr(self._con, name)
-    
 class CookieObject(Framework.objects.XMLObject):
   def __init__(self, *args, **kwargs):
     Framework.objects.XMLObject.__init__(self, *args, **kwargs)
@@ -297,7 +274,6 @@ class Networking(BaseComponent):
     
     # Build a global opener.
     self._opener = self.build_opener()
-    
 
   def build_opener(self, cookie_jar=None):
     if cookie_jar == None:
