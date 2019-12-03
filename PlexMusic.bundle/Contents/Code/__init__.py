@@ -184,4 +184,8 @@ class PlexMusicAlbumAgent(Agent.Album):
           metadata_track.disc_index = int(cloud_track.get('parentIndex') or '1')
           metadata_track.original_title = cloud_track.get('originalTitle') or BLANK_FIELD
           metadata_track.rating_count = int(cloud_track.get('ratingCount') or '0') if use_rating_count else 0
+          metadata_track.moods.clear()
+          for tag in cloud_track.xpath('Mood'):
+            metadata_track.moods.add(tag.get('tag'))
+
     metadata.tracks.validate_keys(valid_keys)
