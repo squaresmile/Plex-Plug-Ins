@@ -20,6 +20,12 @@ GENERIC_ARTIST_NAMES = ['various artists', '[unknown artist]', 'soundtrack', 'os
 
 BLANK_FIELD = '\x7f'
 
+def CleanFilename(path):
+  s = os.path.splitext(os.path.basename(path))[0]
+  s = CleanString(s)
+  s = re.sub(r'^[0-9 \._-]+', '', s)
+  return s
+
 def CleanString(s):
   return str(s).strip('\0 ')
 
@@ -419,6 +425,8 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
               metadata.tracks[track_key].title = ''
               if track_title is not None:
                 metadata.tracks[track_key].title = CleanString(track_title)
+              else:
+                metadata.tracks[track_key].title = CleanFilename(part.file)
 
             # Track index.
             if hasattr(audio_helper, 'get_track_index'):

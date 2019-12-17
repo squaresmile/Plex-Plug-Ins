@@ -114,7 +114,7 @@ class ID3AudioHelper(AudioHelper):
   def get_track_artist(self):
     track_artist = self.tags.get('TPE1')
     album_artist = self.get_artist_title()
-    if str(track_artist) != str(album_artist) and album_artist is not None:
+    if str(track_artist) != str(album_artist) or album_artist is None:
       return track_artist
     return None
 
@@ -442,7 +442,7 @@ class FLACAudioHelper(AudioHelper):
     try:
       tags = MFile(self.filename)
       track_artist = tags.get('artist')[0]
-      if str(track_artist) != str(album_artist) and album_artist is not None:
+      if str(track_artist) != str(album_artist) or album_artist is None:
         return track_artist
     except:
       try:
@@ -587,7 +587,7 @@ class OGGAudioHelper(AudioHelper):
     try:
       album_artist = self.get_artist_title()
       track_artist = self.tags.get('artist')[0]
-      if str(track_artist) != str(album_artist) and album_artist is not None:
+      if str(track_artist) != str(album_artist) or album_artist is None:
         return track_artist
     except:
       raise
