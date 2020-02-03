@@ -73,7 +73,7 @@ TMDB_MOVIE_IMAGES = '/movie/%s/images'
 ARTWORK_ITEM_LIMIT = 15
 POSTER_SCORE_RATIO = .3 # How much weight to give ratings vs. vote counts when picking best posters. 0 means use only ratings.
 BACKDROP_SCORE_RATIO = .3
-RE_IMDB_ID = Regex('^tt\d{7}$')
+RE_IMDB_ID = Regex('^tt\d{7,10}$')
 
 # UMP
 UMP_BASE_URL = 'http://127.0.0.1:32400/services/ump/matches?%s'
@@ -281,7 +281,7 @@ class PlexMovieAgent(Agent.Movies):
               id = 'tt%s' % id
 
             # Make sure ID looks like an IMDb ID
-            if not re.match('t*[0-9]{7}', id):
+            if not re.match('t*[0-9]{7,10}', id):
               continue
 
             result = MetadataSearchResult(id=id,
@@ -313,7 +313,7 @@ class PlexMovieAgent(Agent.Movies):
         continue
 
       # Make sure ID looks like an IMDb ID
-      if not re.match('t*[0-9]{7}', video_id):
+      if not re.match('t*[0-9]{7,10}', video_id):
         continue
 
       # Deal with year
@@ -389,7 +389,7 @@ class PlexMovieAgent(Agent.Movies):
 
     # See if we're being passed a raw ID.
     findByIdCalled = False
-    if media.guid or re.match('t*[0-9]{7}', media.name):
+    if media.guid or re.match('t*[0-9]{7,10}', media.name):
       
       theGuid = media.guid or media.name
       

@@ -26,7 +26,7 @@ ARTWORK_ITEM_LIMIT = 15
 POSTER_SCORE_RATIO = .3 # How much weight to give ratings vs. vote counts when picking best posters. 0 means use only ratings.
 BACKDROP_SCORE_RATIO = .3
 STILLS_SCORE_RATIO = .3
-RE_IMDB_ID = Regex('^tt\d{7}$')
+RE_IMDB_ID = Regex('^tt\d{7,10}$')
 
 # TMDB does not seem to have an official set of supported languages.  Users can register and 'translate'
 # any movie to any ISO 639-1 language.  The following is a realistic list from a popular title.
