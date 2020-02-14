@@ -25,7 +25,7 @@ for d in source_dict:
 audio = ['([^0-9])5\.1[ ]*ch(.)','([^0-9])5\.1([^0-9]?)','([^0-9])7\.1[ ]*ch(.)','([^0-9])7\.1([^0-9])']
 subs = ['multi','multisubs']
 misc = ['cd1','cd2','1cd','2cd','custom','internal','repack','read.nfo','readnfo','nfofix','proper','rerip','dubbed','subbed','extended','unrated','xxx','nfo','dvxa', 'web']
-format = ['ac3','dc','divx','fragment','limited','ogg','ogm','ntsc','pal','ps3avchd','r1','r3','r5','720i','720p','1080i','1080p','remux','x264','xvid','vorbis','aac','dts','fs','ws','1920x1080','1280x720','h264','h','264','prores','uhd','2160p','truehd','atmos','hevc']
+format = ['ac3','divx','fragment','limited','ogg','ogm','ntsc','pal','ps3avchd','r1','r3','r5','720i','720p','1080i','1080p','remux','x264','xvid','vorbis','aac','dts','fs','ws','1920x1080','1280x720','h264','h','264','prores','uhd','2160p','truehd','atmos','hevc']
 
 reversed_tokens = set()
 # use the values of 'format' and 'source' to generate the reversed tokens
@@ -34,7 +34,7 @@ for f in format + source:
     # only add token if length > 3, otherwise the reversed token can easily exists in a normal (not reversed) name
     reversed_tokens.add(f[::-1].lower())
 
-edition = ['dc','se'] # dc = directors cut, se = special edition
+edition = ['se'] # se = special edition
 yearRx = '([\(\[\.\-])([1-2][0-9]{3})([\.\-\)\]_,+])'
 
 # Cleanup folder / filenames
@@ -153,11 +153,6 @@ def CleanName(name):
           break
       else:
         finalTokens.append(newTokens[i])
-    elif not good and newTokens[i].lower() == 'dc':
-      if i+1 < len(newTokens) and newTokens[i+1].lower() in ['comic', 'comics']:
-        finalTokens.append('DC')
-      else:
-        finalTokens.append("(Director's cut)")
     elif not good and newTokens[i].lower() == 'web':
       # We're checking here for the 'web-dl' case (have to do it in two pieces b/c it gets split).
       if i+1 < len(newTokens) and newTokens[i+1].lower() in ['dl']:
