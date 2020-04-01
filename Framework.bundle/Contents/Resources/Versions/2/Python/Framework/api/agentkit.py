@@ -530,6 +530,10 @@ class MediaTree(object):
     # Rename
     if hasattr(self, 'originallyAvailableAt'):
       self.originally_available_at = self.originallyAvailableAt
+    if hasattr(self, 'addedAt'):
+      self.added_at = self.addedAt
+    if hasattr(self, 'refreshedAt'):
+      self.refreshed_at = self.refreshedAt
     
     level_name = None
     subitems = {}
