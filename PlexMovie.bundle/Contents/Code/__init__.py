@@ -75,10 +75,6 @@ POSTER_SCORE_RATIO = .3 # How much weight to give ratings vs. vote counts when p
 BACKDROP_SCORE_RATIO = .3
 RE_IMDB_ID = Regex('^tt\d{7,10}$')
 
-# UMP
-UMP_BASE_URL = 'http://127.0.0.1:32400/services/ump/matches?%s'
-UMP_MATCH_URL = 'type=1&title=%s&year=%s&plexHash=%s&lang=%s&manual=%s'
-
 def Start():
   HTTP.CacheTime = CACHE_1WEEK
   
@@ -299,31 +295,6 @@ class PlexMovieAgent(Agent.Movies):
                 return False
 
     return True
-
-  def perform_ump_movie_search(self, results, media, lang, plex_hashes, manual):
-    ump_match_uri = UMP_MATCH_URL % (String.Quote(media.name), media.year if media.year else '', ','.join(plex_hashes), lang, 1 if manual else 0)
-    ump_movie = XML.ElementFromURL(UMP_BASE_URL % ump_match_uri, cacheTime=CACHE_1WEEK)
-
-    for video in ump_movie.xpath('//Video'):
-
-      try:
-        video_id = video.get('ratingKey')[video.get('ratingKey').rfind('/') + 1:]
-        score = int(video.get('score'))
-      except Exception, e:
-        continue
-
-      # Make sure ID looks like an IMDb ID
-      if not re.match('t*[0-9]{7,10}', video_id):
-        continue
-
-      # Deal with year
-      year = None
-      try: year = int(video.get('year'))
-      except: pass
-
-      result = MetadataSearchResult(id=video_id, name=video.get('title'), year=year, lang=lang, thumb=video.get('thumb'), score=score)
-      Log(result)
-      results.Append(result)
 
   def get_originally_available_at(self, movie, country_code='', metadata=None):
 
