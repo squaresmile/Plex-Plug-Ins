@@ -3,7 +3,7 @@
 #
 
 class PlexMovieNewAgent(Agent.Movies):
-  name = 'Plex Movie New'
+  name = 'Plex Movie (Preview)'
   primary_provider = True
   languages = [Locale.Language.English, Locale.Language.Swedish, Locale.Language.French, 
                Locale.Language.Spanish, Locale.Language.Dutch, Locale.Language.German, 
