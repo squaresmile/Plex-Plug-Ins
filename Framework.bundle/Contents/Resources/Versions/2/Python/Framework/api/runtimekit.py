@@ -327,90 +327,24 @@ class PlatformKit(BaseKit):
     Framework.policies.CloudPolicy,
   ]
 
-
-  def _init(self):
-    self._mimetypes = []
-
-    if self.OS == 'MacOSX':
-      self._add_mac_mimetypes()
-    elif self.OS == 'Windows':
-      self._add_win_mimetypes()
-
-
-  def _add_mac_mimetypes(self):
-    # TODO(schuyler): It would be more correct to iterate over all .plugin
-    # bundles in these two paths and look at the WebPluginMIMETypes in
-    # Info.plist.
-    plugins = [
-      ("Silverlight.plugin", "application/x-silverlight"),
-      ("Flash Player.plugin", "application/x-shockwave-flash"),
-    ]
-    for bundle, mime in plugins:
-      if (os.path.exists("/Library/Internet Plug-Ins/%s" % bundle) or
-          os.path.exists(os.path.expanduser("~/Library/Internet/Plug-Ins/%s" % bundle))):
-        self._mimetypes.append(mime)
-
-
-  def _add_win_mimetypes(self):
-    try:
-      import _winreg
-    except ImportError:
-      return
-
-    hives = (_winreg.HKEY_LOCAL_MACHINE, _winreg.HKEY_CURRENT_USER)
-    for hive in hives:
-      handle, plugins = self._get_registry_subkeys(hive, r"Software\MozillaPlugins")
-      for plugin in plugins:
-        # TODO(schuyler): The MIME types will either be stored as registry
-        # keys or embedded in the DLL. Extracting it from the DLL requires
-        # win32api and probably isn't worth it as long as we only care about
-        # Flash and Silverlight.
-        if plugin.find("FlashPlayer") > -1:
-          self._mimetypes.append("application/x-shockwave-flash")
-        elif plugin.find("NpCtrl") > -1:
-          self._mimetypes.append("application/x-silverlight")
-        handle2, mimes = self._get_registry_subkeys(handle, r"%s\MimeTypes" % plugin)
-        self._mimetypes.extend(mimes)
-
-
-  def _get_registry_subkeys(self, key, subkey):
-    try:
-      import _winreg
-    except ImportError:
-      return None, []
-
-    handle = None
-    keys = []
-    try:
-      flags = _winreg.KEY_ENUMERATE_SUB_KEYS | _winreg.KEY_WOW64_32KEY
-      handle = _winreg.OpenKey(key, subkey, 0, flags)
-      i = 0
-      while True:
-        keys.append(_winreg.EnumKey(handle, i))
-        i += 1
-    except WindowsError:
-      pass
-    return handle, keys
-
-
   @property
   def HasSilverlight(self):
     """
-      Reports whether the server supports playback of Silverlight video content.
+      Deprecated.
       
       :rtype: bool
     """
-    return "application/x-silverlight" in self._mimetypes
+    return False
 
 
   @property
   def HasFlash(self):
     """
-      Reports whether the server supports playback of Flash video content.
+      Deprecated.
       
       :rtype: bool
     """
-    return "application/x-shockwave-flash" in self._mimetypes
+    return False
     
 
   @property
