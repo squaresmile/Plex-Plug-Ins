@@ -57,11 +57,13 @@ class AgentService(SystemService):
       8: 'Artist',
       9: 'Album',
      13: 'Photo',
+     19: 'Game'
     }
     
     self.dummy_agents = {
       'Movie': 'Home Movies',
-      'TV_Show': 'Home Movie Series'
+      'TV_Show': 'Home Movie Series',
+      'Game': 'Games'
     }
     
     # Create a model accessor

@@ -24,6 +24,7 @@ class ScannerService(SystemService):
       8: 'Music',
       9: 'Music',
      13: 'Photos',
+     19: 'Games'
     }
 
   def list(self, mediaType):
