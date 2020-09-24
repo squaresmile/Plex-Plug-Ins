@@ -369,13 +369,7 @@ class TVDBAgent(Agent.TV_Shows):
     Log('Searching for exact match with: %s (lang: %s)' % (mediaShowYear, lang))
     series_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_SEARCH_URL % mediaShowYear, additionalHeaders={'Accept-Language': lang}, cacheTime=0))['data'][0]
     series_name = series_data['seriesName']
-    score = 0
-    if series_name.lower().strip() == media.show.lower().strip():
-      score = self.ParseSeries(media, series_data, lang, results, 90)
-    elif series_name[:series_name.rfind('(')].lower().strip() == media.show.lower().strip():
-      score = self.ParseSeries(media, series_data, lang, results, 86)
-
-    return score
+    return self.ParseSeries(media, series_data, lang, results, 80)
 
   def exact_tvdb_match_with_fallback(self, mediaShowYear, media, results, lang):
     score = 0
@@ -540,6 +534,12 @@ class TVDBAgent(Agent.TV_Shows):
     series_id = series_data.get('id', '')
     series_name = series_data.get('seriesName', '')
     series_lang = lang
+    Log('Scoring result: %s (%s)' % (series_name, series_id))
+    
+    if series_name.lower().strip() == media.show.lower().strip():
+      score += 10
+    elif series_name[:series_name.rfind('(')].lower().strip() == media.show.lower().strip():
+      score += 6
 
     if series_name is '' or '403: series not permitted' in series_name.lower():
       return 0
@@ -577,6 +577,8 @@ class TVDBAgent(Agent.TV_Shows):
     # sanity check to make sure we have SOME common substring
     if (float(substringLen) / cleanShowLen) < .15:  # if we don't have at least 15% in common, then penalize below the 80 point threshold
       score = score - 25
+
+    Log("Score after heuristics: %s" % score)
 
     # Add a result for this show
     results.Append(
