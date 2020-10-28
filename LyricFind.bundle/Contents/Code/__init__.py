@@ -51,16 +51,27 @@ def AddLyric(metadata, album, track, lyric, valid_keys, track_key):
   return False
 
 
-def CopyLyrics(metadata, media, track_key, valid_keys):
+def CopyLyrics(metadata, media, track, valid_keys):
 
   # We need to recreate the Proxy objects to effectively pass them through since the Framework doesn't
   # deserialize them and they're missing from the metadata object in here (we only have the keys).
   #
   sort_order = 1
-  for key in metadata.tracks[track_key].lyrics:
-    metadata.tracks[track_key].lyrics[key] = Proxy.Remote(key, format='lrc' if '&lrc=1' in key else 'txt', sort_order=sort_order)
-    valid_keys[track_key].append(key)
-    sort_order += 1
+
+  track_key = track.id
+
+  # Old track could be old (guid) or new (id).
+  old_track = None
+  if track.guid in metadata.tracks:
+    old_track = metadata.tracks[track.guid]
+  elif track.id in metadata.tracks:
+    old_track = metadata.tracks[track.id]
+
+  if old_track is not None:
+    for key in old_track.lyrics:
+      metadata.tracks[track_key].lyrics[key] = Proxy.Remote(key, format='lrc' if '&lrc=1' in key else 'txt', sort_order=sort_order)
+      valid_keys[track_key].append(key)
+      sort_order += 1
 
 
 ####################################################################################################
@@ -77,6 +88,7 @@ class LyricFindAlbumAgent(Agent.Album):
   def update(self, metadata, media, lang, force=False):
 
     valid_keys = defaultdict(list)
+    valid_track_keys = []
 
     # Only search if this is a new addition, the album was released within the past six months, or this is a manual refresh (LyricFind DDoS mitigation).
     if media.refreshed_at == None or Datetime.Now() - Datetime.ParseDate(media.originally_available_at or '1900') < Datetime.Delta(days=180) or force:
@@ -90,8 +102,9 @@ class LyricFindAlbumAgent(Agent.Album):
 
             @task
             def MatchLyric(index=index, track=track):
-              track_key = track.guid or index
+              track_key = track.id or index
               valid_keys[track_key] = []
+              valid_track_keys.append(track_key)
               added = False
 
               # Only search if this track is missing lyrics (LyricFind DDoS mitigation).
@@ -115,7 +128,8 @@ class LyricFindAlbumAgent(Agent.Album):
     else:
       Log('Not searching for new lyrics for a periodic refresh of a preexisting album more than six months old.')
       for index, track in enumerate(media.children):
-        CopyLyrics(metadata, media, track.guid or index, valid_keys)
+        track_key = track.id or index
+        valid_track_keys.append(track_key)
+        CopyLyrics(metadata, media, track, valid_keys)
 
-    for key in valid_keys.keys():
-      metadata.tracks[key].lyrics.validate_keys(valid_keys[key])
+    metadata.tracks.validate_keys(valid_track_keys)

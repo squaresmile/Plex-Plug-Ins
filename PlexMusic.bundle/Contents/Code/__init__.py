@@ -2,6 +2,8 @@
 # Copyright (c) 2019 Plex Development Team. All rights reserved.
 #
 
+from collections import defaultdict
+
 Languages = [Locale.Language.English, Locale.Language.Arabic, Locale.Language.Bulgarian, Locale.Language.Chinese, Locale.Language.Croatian,
              Locale.Language.Czech, Locale.Language.Danish, Locale.Language.Dutch, Locale.Language.Finnish, Locale.Language.French,
              Locale.Language.German, Locale.Language.Greek, Locale.Language.Hungarian, Locale.Language.Indonesian, Locale.Language.Italian,
@@ -164,28 +166,36 @@ class PlexMusicAlbumAgent(Agent.Album):
     add_tags(res, metadata.styles, 'Style')
     add_tags(res, metadata.moods, 'Mood')
 
-    # Build a map of tracks.
-    cloud_tracks = {}
+    # Build a map of tracks, keeping in mind there could be multiple tracks with the same GUID.
+    cloud_tracks = defaultdict(list)
     for track in res.xpath('//Track'):
-      cloud_tracks[track.get('guid')] = track
+      cloud_tracks[track.get('guid')].append(track)
 
     # Get track data.
     use_rating_count = (prefs['popularTracks'] == 1)
     valid_keys = []
     for track in media.children:
-      guid = track.guid
-      valid_keys.append(guid)
-      metadata_track = metadata.tracks[guid]
-      if guid in cloud_tracks:
-        cloud_track = cloud_tracks[guid]
-        if cloud_track and metadata_track:
-          metadata_track.title = cloud_track.get('title')
-          metadata_track.track_index = int(cloud_track.get('index'))
-          metadata_track.disc_index = int(cloud_track.get('parentIndex') or '1')
-          metadata_track.original_title = cloud_track.get('originalTitle') or BLANK_FIELD
-          metadata_track.rating_count = int(cloud_track.get('ratingCount') or '0') if use_rating_count else 0
-          metadata_track.moods.clear()
-          for tag in cloud_track.xpath('Mood'):
-            metadata_track.moods.add(tag.get('tag'))
+      track_key = track.id
+      valid_keys.append(track_key)
+
+      cloud_track = self.find_matching_track(cloud_tracks, track)
+      metadata_track = metadata.tracks[track_key]
+      if cloud_track and metadata_track:
+        metadata_track.title = cloud_track.get('title')
+        metadata_track.track_index = int(cloud_track.get('index'))
+        metadata_track.disc_index = int(cloud_track.get('parentIndex') or '1')
+        metadata_track.original_title = cloud_track.get('originalTitle') or BLANK_FIELD
+        metadata_track.rating_count = int(cloud_track.get('ratingCount') or '0') if use_rating_count else 0
+        metadata_track.moods.clear()
+        for tag in cloud_track.xpath('Mood'):
+          metadata_track.moods.add(tag.get('tag'))
 
     metadata.tracks.validate_keys(valid_keys)
+
+  def find_matching_track(self, cloud_tracks, track):
+    if track.guid in cloud_tracks:
+      matches = cloud_tracks[track.guid]
+      for match in matches:
+        if track.index == match.get('index') and track.absoluteIndex == (match.get('parentIndex') or '1'):
+          return match
+    return None

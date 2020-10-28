@@ -561,15 +561,18 @@ class LastFmAlbumAgent(Agent.Album):
     except:
       pass
 
+    valid_track_keys = []
     for index in media.tracks:
-      key = media.tracks[index].guid or int(index)
+      track_key = media.tracks[index].id or int(index)
+      valid_track_keys.append(track_key)
       for popular_track in most_popular_tracks.keys():
         if popular_track and LevenshteinRatio(popular_track, media.tracks[index].title) > 0.95:
-          t = metadata.tracks[key]
+          t = metadata.tracks[track_key]
           if Prefs['popular']:
             t.rating_count = most_popular_tracks[popular_track]
           else:
             t.rating_count = 0
+    metadata.tracks.validate_keys(valid_track_keys)
 
 def SearchArtists(artist, limit=10, legacy=False):
   artists = []

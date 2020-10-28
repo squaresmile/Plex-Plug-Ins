@@ -327,10 +327,13 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
   valid_posters = []
   valid_art = []
   valid_keys = defaultdict(list)
+  valid_track_keys = []
   path = None
 
   for index, track in enumerate(media.children):
-    track_key = track.guid or index
+    track_key = track.id or index
+    valid_track_keys.append(track_key)
+
     for item in track.items:
       for part in item.parts:
         filename = helpers.unicodize(part.file)
@@ -467,6 +470,7 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
   for key in metadata.tracks:
     metadata.tracks[key].lyrics.validate_keys(valid_keys[key])
 
+  metadata.tracks.validate_keys(valid_track_keys)
   metadata.posters.validate_keys(valid_posters)
   metadata.art.validate_keys(valid_art)
       
