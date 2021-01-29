@@ -367,9 +367,12 @@ class TVDBAgent(Agent.TV_Shows):
 
   def exact_tvdb_match(self, mediaShowYear, media, results, lang='en'):
     Log('Searching for exact match with: %s (lang: %s)' % (mediaShowYear, lang))
-    series_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_SEARCH_URL % mediaShowYear, additionalHeaders={'Accept-Language': lang}, cacheTime=0))['data'][0]
-    series_name = series_data['seriesName']
-    return self.ParseSeries(media, series_data, lang, results, 80)
+    series_data = JSON.ObjectFromString(GetResultFromNetwork(TVDB_SEARCH_URL % mediaShowYear, additionalHeaders={'Accept-Language': lang}, cacheTime=0))['data']
+    for i, series in enumerate(series_data):
+      score = self.ParseSeries(media, series, lang, results, 80)
+      if i > 4:
+        break
+    return max([r.score for r in results] or [0])
 
   def exact_tvdb_match_with_fallback(self, mediaShowYear, media, results, lang):
     score = 0
@@ -478,7 +481,7 @@ class TVDBAgent(Agent.TV_Shows):
       #try an exact tvdb match
       self.exact_tvdb_match_with_fallback(SVmediaShowYear['normal'], media, results, lang)
 
-      if manual and SVmediaShowYear['normal'] != SVmediaShowYear['normalNoYear']:
+      if SVmediaShowYear['normal'] != SVmediaShowYear['normalNoYear']:
         self.exact_tvdb_match_with_fallback(SVmediaShowYear['normalNoYear'], media, results, lang)
 
     self.dedupe(results)
