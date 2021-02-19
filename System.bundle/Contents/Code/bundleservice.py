@@ -50,10 +50,6 @@ class BundleInfo(object):
         if len(self.service_dict[self.identifier][key][service_type]) > 0:
           return True
     return False
-    
-  @property
-  def managed(self):
-    return self.identifier in self.system.storeservice.plugins and not self.ignore
 
   def update_version(self):
     version_path = Core.storage.join_path(self.path, 'Contents', 'VERSION')

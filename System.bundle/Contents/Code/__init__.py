@@ -6,8 +6,6 @@
 @handler('/system', "System")
 def Main():
   con = MediaContainer()
-  con.Append(DirectoryItem('plexonline', L('AS_TITLE')))
-  con.Append(DirectoryItem('help', L('HS_TITLE')))
   con.Append(DirectoryItem('library', 'Library Sections'))
   con.Append(DirectoryItem('plugins', 'Plug-ins'))
   return con
@@ -19,12 +17,9 @@ def PlayerMain():
   return ''
 
 import messageservice
-import helpservice
 import agentservice
 import scannerservice
 import bundleservice
-import storeservice
-import installservice
 import playerservice
 import flagservice
 import peerservice
@@ -63,9 +58,6 @@ class System(Object):
     start_service('agent',      agentservice.AgentService,        True)
     start_service('scanner',    scannerservice.ScannerService,    not node)
     start_service('bundle',     bundleservice.BundleService,      not node)
-    start_service('help',       helpservice.HelpService,          not node)
-    start_service('store',      storeservice.StoreService,        not node)
-    start_service('install',    installservice.InstallService,    not node)
     start_service('player',     playerservice.PlayerService,      not node)
     start_service('flag',       flagservice.FlagService,          True)
     start_service('peer',       peerservice.PeerService,          True)
@@ -84,7 +76,4 @@ def Start():
   Plugin.Nice(15)
 
 def ValidatePrefs():
-  if not hasattr(Core.config, 'daemonized') or not Core.config.daemonized:
-    Log("Region set to %s, using region %s", Prefs['PO_RGN'], system_instance.storeservice.region)
-    Log("Updating plug-ins after a prefs change")
-    Thread.Create(system_instance.installservice.install_updates_silently)
+  pass
