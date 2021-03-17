@@ -132,4 +132,8 @@ class LyricFindAlbumAgent(Agent.Album):
         valid_track_keys.append(track_key)
         CopyLyrics(metadata, media, track, valid_keys)
 
+    # Make sure we validate lyric keys.
+    for key in valid_keys.keys():
+      metadata.tracks[key].lyrics.validate_keys(valid_keys[key])
+
     metadata.tracks.validate_keys(valid_track_keys)

@@ -454,6 +454,14 @@ class FLACAudioHelper(AudioHelper):
         pass
       return None
 
+  def get_track_genres(self):
+    try:
+      tags = MFile(self.filename)
+      return tags.get('genre')
+    except:
+      Log('Error reading FLAC genres.')
+      return []
+
   def process_metadata(self, metadata, prefs):
 
     Log('Reading FLAC tags from: ' + self.filename)
