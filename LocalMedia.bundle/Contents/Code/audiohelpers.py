@@ -486,9 +486,15 @@ class FLACAudioHelper(AudioHelper):
 
     # Release Date
     try:
-      release_date = tags.get('date')
+      # Try the more precise one first.
+      release_date = tags.get('releasetime')
       if release_date is not None and len(release_date) > 0:
         metadata.originally_available_at = Datetime.ParseDate(release_date[0])
+      else:
+        # Fall back to year.
+        release_date = tags.get('date')
+        if release_date is not None and len(release_date) > 0:
+          metadata.originally_available_at = Datetime.ParseDate(release_date[0])
     except Exception, e:
       Log('Exception reading release date' + str(e))
 
