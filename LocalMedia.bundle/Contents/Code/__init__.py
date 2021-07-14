@@ -197,7 +197,7 @@ class localMediaArtistCommon(object):
           audio_helper = audiohelpers.AudioHelpers(track.items[0].parts[0].file)
           if media.title.lower() not in GENERIC_ARTIST_NAMES:
             if audio_helper and hasattr(audio_helper, 'get_track_genres'):
-              genres = audio_helper.get_track_genres()
+              genres = audio_helper.get_track_genres(prefs)
               for genre in genres:
                 if genre not in album_genres:
                   album_genres.append(genre)
@@ -450,7 +450,7 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
               if track_artist is not None:
                 metadata.tracks[track_key].original_title = StringOrBlank(track_artist)
           except:
-            Log('Exception reading tags')
+            Log('Exception reading tags.')
 
         # Look for a video extra for this track.
         if find_extras:

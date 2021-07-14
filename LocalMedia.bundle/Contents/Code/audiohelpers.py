@@ -130,7 +130,10 @@ class ID3AudioHelper(AudioHelper):
     except:
       return None
 
-  def get_track_genres(self):
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
+
     genre_list = []
     try:
       self.tags = tags = MFile(self.filename)
@@ -184,7 +187,7 @@ class ID3AudioHelper(AudioHelper):
 
     # Genres
     try:
-      genres = tags.get('TCON')
+      genres = tags.get('TCON') if prefs['genres'] == 2 else None
       if genres is not None and len(genres.text) > 0:
         for genre in genres.text:
           for sub_genre in parse_genres(genre):
@@ -295,7 +298,10 @@ class MP4AudioHelper(AudioHelper):
     except:
       return None
 
-  def get_track_genres(self):
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
+
     genre_list = []
     try:
       tags = MFile(self.filename)
@@ -322,7 +328,7 @@ class MP4AudioHelper(AudioHelper):
 
     # Genres
     try:
-      genres = tags.get('\xa9gen')
+      genres = tags.get('\xa9gen') if prefs['genres'] == 2 else None
       if genres is not None and len(genres) > 0:
         for genre in genres:
           for sub_genre in parse_genres(genre):
@@ -454,7 +460,10 @@ class FLACAudioHelper(AudioHelper):
         pass
       return None
 
-  def get_track_genres(self):
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
+
     try:
       tags = MFile(self.filename)
       return tags.get('genre')
@@ -475,8 +484,8 @@ class FLACAudioHelper(AudioHelper):
     # Genres
     try:
       metadata.genres.clear()
-      genres = tags.get('genre')
-      if prefs['genres'] == 2 and genres is not None and len(genres) > 0:
+      genres = tags.get('genre') if prefs['genres'] == 2 else None
+      if genres is not None and len(genres) > 0:
         for genre in genres:
           for sub_genre in parse_genres(genre):
             if sub_genre.strip():
@@ -533,7 +542,7 @@ class OGGAudioHelper(AudioHelper):
   def process_metadata(self, metadata, prefs):
     # Genres
     try:
-      genres = self.tags.get('genre')
+      genres = self.tags.get('genre') if prefs['genres'] == 2 else None
       if genres is not None and len(genres) > 0:
         metadata.genres.clear()
         for genre in genres:
@@ -607,7 +616,9 @@ class OGGAudioHelper(AudioHelper):
       raise
       return None
 
-  def get_track_genres(self):
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
     try: return self.tags.get('genre')
     except: return []
 
@@ -618,7 +629,10 @@ class ASFAudioHelper(AudioHelper):
   def is_helper_for(cls, tagType):
     return tagType in ['ASF']
 
-  def get_track_genres(self):
+  def get_track_genres(self, prefs):
+    if prefs['genres'] != 2:
+      return []
+
     genre_list = []
     try:
       tags = MFile(self.filename)
@@ -644,7 +658,7 @@ class ASFAudioHelper(AudioHelper):
 
     # Genres
     try:
-      genres = tags.get('WM/Genre')
+      genres = tags.get('WM/Genre') if prefs['genres'] == 2 else None
       if genres is not None and len(genres) > 0:
         metadata.genres.clear()
         for genre in genres:
