@@ -153,6 +153,9 @@ class Album(object):
   moods                     = Template.Set(Template.String())
   moods.xml_tag             = 'Mood'
 
+  album_format              = Template.Set(Template.String())
+  album_type                = Template.Set(Template.String())
+
   # Interface settings.
   
   xml_tag                   = 'Directory'

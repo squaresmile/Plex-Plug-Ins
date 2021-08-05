@@ -166,6 +166,17 @@ class PlexMusicAlbumAgent(Agent.Album):
     add_tags(res, metadata.styles, 'Style')
     add_tags(res, metadata.moods, 'Mood')
 
+    # Album format/type.
+    format = res.xpath('//Format')
+    if format is not None:
+      metadata.album_format.clear()
+      metadata.album_type.clear()
+      for item in format[0].items():
+        if item[0] != 'type':
+          metadata.album_type.add(item[0])
+        else:
+          metadata.album_format.add(item[1])
+
     # Build a map of tracks, keeping in mind there could be multiple tracks with the same GUID.
     cloud_tracks = defaultdict(list)
     for track in res.xpath('//Track'):
