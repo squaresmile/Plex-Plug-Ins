@@ -1,1 +1,1 @@
-webdesktopbundle@5569e89bd91ed9b3839683696f586cf1cc518dbe
+webdesktopbundle@428a2978308cc5a16f754ba82dd1f3b9b2624259

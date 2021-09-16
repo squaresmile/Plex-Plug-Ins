@@ -585,6 +585,17 @@ class ProxyContainerObject(MapObject, Serializable, Combinable):
       return self._items[name]._obj._sort_order != None
     return False
 
+  def sort_these_keys_first(self, key_set):
+    index = 1
+    index_end = 10000
+    for key in self._items:
+      if key in key_set:
+        self._items[key]._obj._sort_order = index
+        index = index + 1
+      else:
+        self._items[key]._obj._sort_order = index_end
+        index_end = index_end + 1
+
 class SetItem(ItemObject, Serializable):
   def _serialize(self, path):
     if not isinstance(self._obj, Serializable):

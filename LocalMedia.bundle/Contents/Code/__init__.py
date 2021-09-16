@@ -471,8 +471,26 @@ def updateAlbum(metadata, media, lang, find_extras=False, artist_extras={}, extr
     metadata.tracks[key].lyrics.validate_keys(valid_keys[key])
 
   metadata.tracks.validate_keys(valid_track_keys)
-  metadata.posters.validate_keys(valid_posters)
-  metadata.art.validate_keys(valid_art)
+
+  # We can't get rid of local artwork for a very interesting reason—the user might have
+  # multiple albums with the same GUID (e.g. normal + deluxe version) and if we validate
+  # these keys here, when one is refreshed it'll delete artwork for any others. This matters
+  # for artwork because we're storing the original versions here (as opposed to other metadata
+  # we write and then read and don't need anymore).
+  #
+  # There is some added complexity in that server code will take the first item in the list
+  # if the field isn't locked, which allows posters to evolve over time. We make sure here
+  # that we're sorting the posters we found for this "instance" first. That way if two albums
+  # with the same GUID are refreshed, each one gets the right order with its own instances first.
+  #
+  unique_keys = set(valid_posters)
+  metadata.posters.sort_these_keys_first(unique_keys)
+
+  unique_art_keys = set(valid_art)
+  metadata.art.sort_these_keys_first(unique_art_keys)
+
+  #metadata.posters.validate_keys(valid_posters)
+  #metadata.art.validate_keys(valid_art)
       
 def findTrackExtra(album, track, file_path, extra_type_map, artist_extras={}):
 

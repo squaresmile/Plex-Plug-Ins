@@ -898,6 +898,11 @@ class TVDBAgent(Agent.TV_Shows):
     def UpdateEpisodes():
 
       ordering = media.settings.get('showOrdering', 'aired') if media.settings else 'aired'
+
+      # This can end up empty ('') in "downgraded" libraries.
+      if not ordering:
+        ordering = 'aired'
+
       use_dvd_order = ordering == 'dvd'
       use_absolute_order = ordering == 'absolute'
       Log('Show ordering is: %s', ordering)

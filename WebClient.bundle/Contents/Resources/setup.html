@@ -11,8 +11,8 @@
     (function () {
       'use strict';
 
-      var timestamp = new Date().getTime();
-      var img = new Image();
+      const timestamp = new Date().getTime();
+      const img = new Image();
 
       img.onload = function () {
         window.location.href = 'https://plex.tv/servers/setup' + window.location.search + '&url=' + window.location.protocol + '//' + window.location.host;

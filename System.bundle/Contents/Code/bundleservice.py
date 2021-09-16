@@ -117,7 +117,9 @@ class BundleService(SystemService):
           if name in plugin_paths:
             del plugin_paths[name]
 
-      # Nuke any bundles with duplicate identifiers, preferring the ones in the bundled location.
+      # Nuke any non-bundled plugins with duplicate identifiers, preferring the ones in the bundled location.
+      # Bundled plugins may have duplicate identifiers; PMS will decide which to load (based on feature flags, e.g.).
+      #
       identifiers = []
       for plugin, path in bundled_plugin_paths.items() + plugin_paths.items():
         try:
@@ -125,6 +127,8 @@ class BundleService(SystemService):
           if bundle.identifier in identifiers:
             if Core.storage.link_exists(path):
               Log('Found symbolic link at %s, ignoring duplicate plugin.' % path)
+            elif Core.storage.dir_name(path) == Core.bundled_plugins_path:
+              Log('Found duplicate identifier at %s for bundled plugin (%s), ignoring duplicate plugin.' % (path, bundle.identifier))
             else:
               Log('Deleting plugin at %s because it has a duplicate identifier (%s)' % (path, bundle.identifier))
               Core.storage.remove_tree(path)
