@@ -11,7 +11,7 @@ META_TVDB_TITLE_SEARCH = '%s/tv/titles/' % META_HOST
 TVDB_BASE_URL = 'https://api4.thetvdb.com/v4'
 TVDB_LOGIN_URL = 'http://127.0.0.1:32400/services/thetvdb/login'
 TVDB_SEARCH_URL = '%s/search?type=series&q=%%s' % TVDB_BASE_URL
-TVDB_SERIES_URL = '%s/series/%%s/extended' % TVDB_BASE_URL
+TVDB_SERIES_URL = '%s/series/%%s/extended?meta=translations' % TVDB_BASE_URL
 TVDB_SERIES_TRANSLATIONS_URL = '%s/series/%%s/translations/%%s' % TVDB_BASE_URL
 TVDB_EPISODES_URL = '%s/series/%%s/episodes/%%s?page=%%s' % TVDB_BASE_URL
 TVDB_EPISODE_DETAILS_URL = '%s/episodes/%%s/extended?meta=translations' % TVDB_BASE_URL
@@ -751,11 +751,11 @@ class TVDBAgent(Agent.TV_Shows):
       pass
 
     # If we have desired title/summary translations, use them instead.
-    name_translation = [t.get('name') for t in tvdb_series_data.get('translations', []).get('nameTranslations', []) if t.get('language') == ISO639_3.get(lang)]
+    name_translation = [t.get('name') for t in tvdb_series_data.get('translations', {}).get('nameTranslations', []) if t.get('language') == ISO639_3.get(lang)]
     if len(name_translation) > 0:
       tvdb_series_data['name'] = name_translation[0]
 
-    overview_translation = [t.get('overview', '') for t in tvdb_series_data.get('translations', []).get('overviewTranslations', []) if t.get('language') == ISO639_3.get(lang)]
+    overview_translation = [t.get('overview', '') for t in tvdb_series_data.get('translations', {}).get('overviewTranslations', []) if t.get('language') == ISO639_3.get(lang)]
     if len(overview_translation) > 0:
       tvdb_series_data['overview'] = overview_translation[0]
 
