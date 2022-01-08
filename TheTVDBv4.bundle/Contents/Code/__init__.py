@@ -750,14 +750,16 @@ class TVDBAgent(Agent.TV_Shows):
     except:
       pass
 
-    # If we have desired title/summary translations, use them instead.
-    name_translation = [t.get('name') for t in tvdb_series_data.get('translations', {}).get('nameTranslations', []) if t.get('language') == ISO639_3.get(lang)]
-    if len(name_translation) > 0:
-      tvdb_series_data['name'] = name_translation[0]
+    translations = tvdb_series_data.get('translations')
+    if translations:
+      # If we have desired title/summary translations, use them instead.
+      name_translation = [t.get('name') for t in translations.get('nameTranslations') or [] if t.get('language') == ISO639_3.get(lang)]
+      if len(name_translation) > 0:
+        tvdb_series_data['name'] = name_translation[0]
 
-    overview_translation = [t.get('overview', '') for t in tvdb_series_data.get('translations', {}).get('overviewTranslations', []) if t.get('language') == ISO639_3.get(lang)]
-    if len(overview_translation) > 0:
-      tvdb_series_data['overview'] = overview_translation[0]
+      overview_translation = [t.get('overview', '') for t in translations.get('overviewTranslations') or [] if t.get('language') == ISO639_3.get(lang)]
+      if len(overview_translation) > 0:
+        tvdb_series_data['overview'] = overview_translation[0]
 
     metadata.title = tvdb_series_data.get('name')
     metadata.summary = tvdb_series_data.get('overview')
@@ -765,7 +767,7 @@ class TVDBAgent(Agent.TV_Shows):
     # Note: This has moved from the series to the episode level in v4.
     # metadata.content_rating = series['rating']
 
-    for company in tvdb_series_data.get('companies', []):
+    for company in tvdb_series_data.get('companies') or []:
       if company.get('primaryCompanyType') == 1:
         metadata.studio = company['name']
         break
@@ -808,7 +810,7 @@ class TVDBAgent(Agent.TV_Shows):
     metadata.rating = tvdb_rating
 
     # Genres
-    metadata.genres = [genre['name'] for genre in tvdb_series_data.get('genres', [])]
+    metadata.genres = [genre['name'] for genre in tvdb_series_data.get('genres') or []]
 
     # Cast
     metadata.roles.clear()
@@ -883,20 +885,23 @@ class TVDBAgent(Agent.TV_Shows):
           except:
             Log("Exception fetching episode data, no update for TVDB id: %s")
 
-          # Name translation.
-          name_translation = [t for t in episode_data.get('translations', []).get('nameTranslations', []) if t.get('language') == ISO639_3.get(lang)]
-          if len(name_translation) > 0:
-            episode_data['name'] = name_translation[0].get('name')
+          translations = episode_data.get('translations')
+          if translations:
 
-          # Overview translation, falling back to English.
-          overview_translation = [t for t in episode_data.get('translations', []).get('overviewTranslations', []) if t.get('language') == ISO639_3.get(lang)]
-          overview_english = [t for t in episode_data.get('translations', []).get('overviewTranslations', []) if t.get('language') == 'eng']
-          if len(overview_translation) > 0:
-            episode_data['overview'] = overview_translation[0].get('overview')
-          elif len(overview_english) > 0:
-            episode_data['overview'] = overview_english[0].get('overview')
+            # Name translation.
+            name_translation = [t for t in translations.get('nameTranslations') or [] if t.get('language') == ISO639_3.get(lang)]
+            if len(name_translation) > 0:
+              episode_data['name'] = name_translation[0].get('name')
 
-          Log('Set episode name to %s and overview to %s...' % (episode_data['name'], episode_data['overview'][:50]))
+            # Overview translation, falling back to English.
+            overview_translation = [t for t in translations.get('overviewTranslations') or [] if t.get('language') == ISO639_3.get(lang)]
+            overview_english = [t for t in translations.get('overviewTranslations') or [] if t.get('language') == 'eng']
+            if len(overview_translation) > 0:
+              episode_data['overview'] = overview_translation[0].get('overview')
+            elif len(overview_english) > 0:
+              episode_data['overview'] = overview_english[0].get('overview')
+
+          Log('Set episode name to %s and overview to %s...' % (episode_data.get('name'), episode_data.get('overview')[:50] if episode_data.get('overview') else None))
 
           # Get episode information
           episode.title = episode_data.get('name')
@@ -910,8 +915,8 @@ class TVDBAgent(Agent.TV_Shows):
           # Note: Content ratings have moved from the series to the episode level and are now localizable.
           # We'll pick the US system here to approximate the behavior of the pre-v4 agent.
           #
-          if len(episode_data.get('contentRatings', [])) > 0:
-            content_rating = [c.get('name') for c in episode_data.get('contentRatings', []) if c.get('country') == 'usa']
+          if len(episode_data.get('contentRatings') or []) > 0:
+            content_rating = [c.get('name') for c in episode_data.get('contentRatings') or [] if c.get('country') == 'usa']
             if len(content_rating) > 0:
               episode.content_rating = content_rating[0]
 
@@ -925,7 +930,7 @@ class TVDBAgent(Agent.TV_Shows):
           episode.directors.clear()
           episode.writers.clear()
           if episode_data.get('characters'):
-            for person in episode_data.get('characters', []):
+            for person in episode_data.get('characters') or []:
               if person.get('peopleType') == 'Director':
                 d = episode.directors.new()
                 d.name = person.get('personName')
@@ -972,12 +977,12 @@ class TVDBAgent(Agent.TV_Shows):
     type_map = { 2: metadata.posters, 3: metadata.art, 7: metadata.seasons }
 
     # Need to pass the seasons down to the Download task so we can hook season posters up to the correct season by id.
-    seasons = tvdb_series_data.get('seasons', [])
+    seasons = tvdb_series_data.get('seasons') or []
 
     @parallelize
     def DownloadImages():
       i = 0
-      for artwork in sorted(tvdb_series_data.get('artworks', []), key=lambda x: x['score'], reverse=True):
+      for artwork in sorted(tvdb_series_data.get('artworks') or [], key=lambda x: x['score'], reverse=True):
         i += 1
         @task
         def DownloadImage(type_map=type_map, artwork=artwork, valid_names=valid_names, seasons=seasons, lang=lang, i=i):
@@ -988,7 +993,7 @@ class TVDBAgent(Agent.TV_Shows):
           if language == ISO639_3.get(lang):
             sort_order = i
           else:
-            sort_order = i + len(tvdb_series_data.get('artworks', []))
+            sort_order = i + len(tvdb_series_data.get('artworks') or [])
 
           if image_type == 7: #  Season posters (type 7) need a little more help to wire up correctly.
             try:
