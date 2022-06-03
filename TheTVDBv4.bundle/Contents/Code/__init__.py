@@ -804,10 +804,8 @@ class TVDBAgent(Agent.TV_Shows):
     try: metadata.duration = int(tvdb_series_data['averageRuntime']) * 60 * 1000
     except: Log('Error fetching average duration')
 
-    # Rating
-    try: tvdb_rating = float(tvdb_series_data['score'])
-    except: tvdb_rating = None
-    metadata.rating = tvdb_rating
+    # Rating (deprecated)
+    metadata.rating = None
 
     # Genres
     metadata.genres = [genre['name'] for genre in tvdb_series_data.get('genres') or []]
