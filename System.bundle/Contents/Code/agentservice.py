@@ -57,14 +57,14 @@ class AgentService(SystemService):
       8: 'Artist',
       9: 'Album',
      13: 'Photo',
-     19: 'Game',
+	 # Game type has been removed
+	 # 19: 'Game',
      20: 'Plex_Personal_Media'
     }
     
     self.dummy_agents = {
       'Movie': 'Home Movies',
       'TV_Show': 'Home Movie Series',
-      'Game': 'Games',
       'Plex_Personal_Media': 'Plex Personal Media'
     }
     

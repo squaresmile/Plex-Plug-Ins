@@ -120,7 +120,7 @@ class PlexMovieAgent(Agent.Movies):
     return self.guidize("%s" % string)
   
   def getPublicIP(self):
-    ip = HTTP.Request('https://plex.tv/pms/:/ip', cacheTime=CACHE_1DAY).content.strip()
+    ip = HTTP.Request('https://v4.plex.tv/pms/:/ip', cacheTime=CACHE_1DAY).content.strip()
     return ip
 
   def getPlexMovieResults(self, media, matches, search_type='hash', plex_hash='', force=False):
