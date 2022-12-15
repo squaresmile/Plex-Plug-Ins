@@ -4,7 +4,7 @@ import time
 
 # Last.fm API
 API_KEY = 'd5310352469c2631e5976d0f4a599773'
-BASE_URL = 'http://lastfm-z.plexapp.com/2.0/'  # HTTPS doesn't work
+BASE_URL = 'https://lastfm-z.plexapp.com/2.0/'
 
 ARTIST_SEARCH_URL = BASE_URL + '?method=artist.search&artist=%s&page=%d&limit=%d&format=json&api_key=' + API_KEY
 ARTIST_ALBUM_SEARCH_URL = BASE_URL + '?method=artist.gettopalbums&artist=%s&page=%s&limit=%s&format=json&api_key=' + API_KEY
@@ -98,11 +98,11 @@ def ArtistSearch(artist, albums=[], lang='en'):
     return
   artist_results = []
   artists = SearchArtists(artist, ARTIST_MATCH_LIMIT)
-  
+
   # Extra shot if there's an & in there.
   if '&' in artist:
     artists += SearchArtists(artist.replace('&', 'and'), ARTIST_MATCH_LIMIT)
-  
+
   score_artists(artists, artist, albums, lang, artist_results)
   if len(artist_results) > 0 and artist_results[0].score >= 85:
     return GetArtist(artist_results[0].id)
@@ -110,7 +110,7 @@ def ArtistSearch(artist, albums=[], lang='en'):
 @expose
 def AlbumSearch(artist, album, year, lang):
   id = String.Quote(artist.decode('utf-8').encode('utf-8')).replace(' ','+')
-  
+
   # Try by top albums.
   albums = GetAlbumsByArtist(id, albums=[])
   for a in albums:
@@ -149,29 +149,29 @@ def ArtistGetEvents(lastfm_artist):
     artist_songkickid = GetArtistSongkickId(lastfm_artist['name'])
 
   return GetArtistEventsFromSongkickById(artist_mbid=artist_mbid, artist_songkickid=artist_songkickid)
-  
+
 
 # Score lists of artist results.  Permutes artist_results list.
 def score_artists(artists, media_artist, media_albums, lang, artist_results):
-  
+
   for i, artist in enumerate(artists):
 
     # Need to coerce this into a utf-8 string so String.Quote() escapes the right characters.
     id = String.Quote(artist['name'].decode('utf-8').encode('utf-8')).replace(' ','+')
-    
+
     # Search returns ordered results, but no numeric score, so we approximate one with Levenshtein ratio.
     dist = int(ARTIST_MAX_DIST_PENALTY - ARTIST_MAX_DIST_PENALTY * LevenshteinRatio(artist['name'].lower(), media_artist.lower()))
-    
+
     # If the match is exact, bonus.
     if artist['name'].lower() == media_artist.lower():
       dist = dist - 1
-    
+
     # Fetching albums in order to apply bonus is expensive, so only do it for the top N artist matches.
     if i < ARTIST_ALBUMS_MATCH_LIMIT:
       bonus = get_album_bonus(media_albums, artist_id=id)
     else:
       bonus = 0
-    
+
     # Adjust the score.
     score = ARTIST_INITIAL_SCORE + bonus - dist
 
@@ -181,44 +181,44 @@ def score_artists(artists, media_artist, media_albums, lang, artist_results):
     if len(artists) > 1 and artist.has_key('listeners') and int(artist['listeners']) < ARTIST_MIN_LISTENER_THRESHOLD and score < ARTIST_MATCH_GOOD_SCORE:
       Log('Skipping %s with only %s listeners and score of %s.' % (artist['name'], artist['listeners'], score))
       continue
-    
+
     name = artist['name']
     listeners = artist['listeners'] if artist.has_key('listeners') else '(no listeners data)'
     Log('Artist result: ' + name + ' dist: ' + str(dist) + ' album bonus: ' + str(bonus) + ' listeners: ' + str(listeners) + ' score: ' + str(score))
-    
+
     # Skip matches that don't meet the minimum score.  There many be many, especially if this was a manual search.
     if score >= ARTIST_MATCH_MIN_SCORE:
       artist_results.append(MetadataSearchResult(id=id, name=name, lang=lang, score=score))
     else:
       Log('Skipping artist, didn\'t meet minimum score of ' + str(ARTIST_MATCH_MIN_SCORE))
-      
+
     # Sort the resulting artists.
-    artist_results.sort(key=lambda r: r.score, reverse=True)    
+    artist_results.sort(key=lambda r: r.score, reverse=True)
 
 # Get albums by artist and boost artist match score accordingly.  Returns bonus (int) of 0 - ARTIST_ALBUM_MAX_BONUS.
 def get_album_bonus(media_albums, artist_id):
-  
+
   Log('Fetching artist\'s albums and applying album bonus.')
   bonus = 0
   albums = GetAlbumsByArtist(artist_id, albums=[], limit=ARTIST_ALBUMS_LIMIT)
-  
+
   try:
-    for a in media_albums:    
-      media_album = a.lower()  
+    for a in media_albums:
+      media_album = a.lower()
       for album in albums:
 
         # If the album title is close enough to the media title, boost the score.
         if Util.LevenshteinDistance(media_album,album['name'].lower()) <= NAME_DISTANCE_THRESHOLD:
           bonus += ARTIST_ALBUM_BONUS_INCREMENT
-        
+
         # This is a cheap comparison, so let's try again with the contents of parentheses removed, e.g. "(limited edition)"
         elif Util.LevenshteinDistance(media_album,RE_STRIP_PARENS.sub('',album['name'].lower())) <= NAME_DISTANCE_THRESHOLD:
           bonus += ARTIST_ALBUM_BONUS_INCREMENT
-        
+
         # Stop trying once we hit the max bonus.
         if bonus >= ARTIST_ALBUM_MAX_BONUS:
           break
-  
+
   except Exception, e:
     Log('Error applying album bonus: ' + str(e))
   if bonus > 0:
@@ -236,12 +236,12 @@ class LastFmAgent(Agent.Artist):
   def search(self, results, media, lang, manual):
 
     # Handle a couple of edge cases where artist search will give bad results.
-    if media.artist == '[Unknown Artist]': 
+    if media.artist == '[Unknown Artist]':
       return
     if media.artist == 'Various Artists':
       results.Append(MetadataSearchResult(id = 'Various%20Artists', name= 'Various Artists', thumb = VARIOUS_ARTISTS_POSTER, lang  = lang, score = 100))
       return
-    
+
     # Search for artist.
     Log('Artist search: ' + media.artist)
     if manual:
@@ -250,11 +250,11 @@ class LastFmAgent(Agent.Artist):
 
     artists = SearchArtists(media.artist, ARTIST_MATCH_LIMIT)
     media_albums = [a.title for a in media.children]
-    
+
     # Score the first N results.
     score_artists(artists, media.artist, media_albums, lang, artist_results)
 
-    # Last.fm search results are heavily influenced by popularity.  As a result, many less popular artist 
+    # Last.fm search results are heavily influenced by popularity.  As a result, many less popular artist
     # results are buried far down the list, and may not appear on the first page.  In order to minimize API
     # requests during automated matching, we only grab the first page of results.  If we're running a manual
     # or custom match, we can afford to make a few more requests.
@@ -305,7 +305,7 @@ class LastFmAgent(Agent.Artist):
     if similar_artists is not None:
       for similar in similar_artists:
         metadata.similar.add(similar['name'])
-    
+
     # Events.
     metadata.concerts.clear()
     if Prefs['concerts']:
@@ -332,14 +332,14 @@ class LastFmAgent(Agent.Artist):
       except:
         Log('Couldn\'t add genre tags for artist.')
 
-  
+
 class LastFmAlbumAgent(Agent.Album):
   name = 'Last.fm'
   languages = [Locale.Language.English, Locale.Language.Swedish, Locale.Language.French,
                Locale.Language.Spanish, Locale.Language.German, Locale.Language.Polish,
                Locale.Language.Italian, Locale.Language.Portuguese, Locale.Language.Japanese,
                Locale.Language.Turkish, Locale.Language.Russian, Locale.Language.Chinese]
-  
+
   def search(self, results, media, lang, manual):
 
     # Handle a couple of edge cases where album search will give bad results.
@@ -367,7 +367,7 @@ class LastFmAlbumAgent(Agent.Album):
       # Start with the first N albums (ideally a single API request).
       if not manual:
         albums = self.score_albums(media, lang, GetAlbumsByArtist(media.parent_metadata.id, albums=[], limit=ARTIST_ALBUMS_LIMIT))
-        
+
         # Check for a good match within these reults.  If we find one, set the flag to stop looking.
         if albums and albums[0]['score'] >= ALBUM_MATCH_GOOD_SCORE:
           found_good_match = True
@@ -394,12 +394,12 @@ class LastFmAlbumAgent(Agent.Album):
     # important to fall back even in the case of single-artist albums.
     if not found_good_match or albums:
       albums = self.score_albums(media, lang, SearchAlbums(media.title.lower(), ALBUM_MATCH_LIMIT), manual=manual) + albums
-      
+
       # If we find a good match for the exact search, stop looking.
       if albums and albums[0]['score'] >= ALBUM_MATCH_GOOD_SCORE:
         found_good_match = True
         Log('Found a good match for album search.')
-      
+
       # If we still haven't found anything, try another match with parenthetical phrases stripped from
       # album title.  This helps where things like '(Limited Edition)' and '(disc 1)' may confuse search.
       if not albums or not found_good_match:
@@ -436,7 +436,7 @@ class LastFmAlbumAgent(Agent.Album):
     for album in albums:
       try:
         name = album['name']
-        
+
         # Sanitize artist.  Last.fm sometimes returns a string, sometimes a list.
         if album.has_key('artist'):
           if not isinstance(album['artist'], basestring):
@@ -445,32 +445,32 @@ class LastFmAlbumAgent(Agent.Album):
             artist = album['artist']
         else:
           artist = ''
-        
+
         id = media.parent_metadata.id + '/' + String.Quote(album['name'].decode('utf-8').encode('utf-8')).replace(' ','+')
         dist = Util.LevenshteinDistance(name.lower(),media.title.lower()) * ALBUM_NAME_DIST_COEFFICIENT
-        
+
         # Freeform album searches will come back with wacky artists.  If they're not close, penalize heavily, skipping them.
         artist_dist = Util.LevenshteinDistance(artist.lower(),String.Unquote(media.parent_metadata.id).lower())
         if artist_dist > ALBUM_TRACK_BONUS_MAX_ARTIST_DSIT:
           artist_dist = 1000
           Log('Suppressing album result because artist looks wrong: ' + artist)
-        
+
         # Apply album and artist penalties and append to temp results list.
         score = ALBUM_INITIAL_SCORE - dist - artist_dist
         res.append({'id':id, 'name':name, 'lang':lang, 'score':score})
-      
+
       except:
         Log('Error scoring album.')
 
     if res:
       res = sorted(res, key=lambda k: k['score'], reverse=True)
       for i, result in enumerate(res):
-        
+
         # Fetching albums to apply track bonus is expensive, so only do it for the top N results.
         if i < ALBUM_TRACK_BONUS_MATCH_LIMIT:
           bonus = self.get_track_bonus(media, result['name'], lang)
           res[i]['score'] = res[i]['score'] + bonus
-        
+
         # Append albums that meet the minimum score, skip the rest.
         if res[i]['score'] >= ALBUM_MATCH_MIN_SCORE or manual:
           Log('Album result: ' + result['name'] + ' album bonus: ' + str(bonus) + ' score: ' + str(result['score']))
@@ -484,7 +484,7 @@ class LastFmAlbumAgent(Agent.Album):
       return sorted(matches, key=lambda k: k['score'], reverse=True)
     else:
       return matches
-  
+
   # Get album info in order to compare track listings and apply bonus accordingly.  Return a bonus (int) of 0 - ALBUM_TRACK_MAX_BONUS.
   def get_track_bonus(self, media, name, lang):
     tracks = GetTracks(media.parent_metadata.id, String.Quote(name.decode('utf-8').encode('utf-8')).replace(' ','+'), lang)
@@ -501,7 +501,7 @@ class LastFmAlbumAgent(Agent.Album):
       # If the albums have the same number of tracks, boost more.
       if len(media.children) == len(tracks):
         bonus += ALBUM_NUM_TRACKS_BONUS
-      
+
       # Cap the bonus.
       if bonus >= ALBUM_TRACK_MAX_BONUS:
         bonus = ALBUM_TRACK_MAX_BONUS
@@ -512,7 +512,7 @@ class LastFmAlbumAgent(Agent.Album):
     if bonus > 0:
       Log('Applying track bonus of: ' + str(bonus))
     return bonus
- 
+
   def update(self, metadata, media, lang):
     album = GetAlbum(metadata.id.split('/')[0], metadata.id.split('/')[1], lang)
     if not album:
@@ -520,7 +520,7 @@ class LastFmAlbumAgent(Agent.Album):
 
     # Title.
     metadata.title = album['name']
-    
+
     # Artwork.
     valid_keys = []
     try:
@@ -542,7 +542,7 @@ class LastFmAlbumAgent(Agent.Album):
         metadata.originally_available_at = Datetime.ParseDate(album['releasedate'].split(',')[0].strip())
     except:
       Log('Couldn\'t add release date to album.')
-      
+
     # Genres.
     metadata.genres.clear()
     if Prefs['genres']:
@@ -588,7 +588,7 @@ def SearchArtists(artist, limit=10, legacy=False):
     except:
       a = artist.lower()
     url = ARTIST_SEARCH_URL % (String.Quote(a), i+1, lim)
-    try: 
+    try:
       response = GetJSON(url)
       if response.has_key('error'):
         Log('Error retrieving artist search results: ' + response['message'])
@@ -639,12 +639,12 @@ def GetAlbumsByArtist(artist, page=1, limit=ARTIST_ALBUMS_LIMIT*4, pg_size=ARTIS
   url = ARTIST_ALBUM_SEARCH_URL % (String.Quote(String.Unquote(artist.lower())), page, pg_size)
   total = 0
   try:
-    
+
     # We use a larger page size when fetching all to limit the number of API requests. We can't use
     # a huge value, e.g. 10000 because not all results will be returned for some unknown reason.
     if not limit:
       pg_size = 200
-    
+
     response = GetJSON(url)
     if response.has_key('error'):
       Log('Error retrieving artist album search results: ' + response['message'])
@@ -659,7 +659,7 @@ def GetAlbumsByArtist(artist, page=1, limit=ARTIST_ALBUMS_LIMIT*4, pg_size=ARTIS
       total = int(album_results['total'])
     if total == 0:
       Log('No results for album search.')
-    
+
   except:
     Log('Error retrieving artist album search results.')
 
@@ -769,7 +769,7 @@ def GetArtistEventsFromSongkickById(artist_mbid=None, artist_songkickid = None):
     url = SONGKICK_ARTIST_EVENTS_URL_SONGKICKID % artist_songkickid
   else:
     return []
-  
+
   try:
     events_result = GetSongkickJSON(url, cache_time=CACHE_1WEEK)
     status = events_result['resultsPage']['status']
@@ -796,7 +796,7 @@ def GetArtistSongkickId(artist_name):
         return first_artist_result['id']
   except:
     Log('Exception searching Songkick artist id.')
-  
+
   return None
 
 
