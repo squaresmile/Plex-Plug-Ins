@@ -79,7 +79,7 @@ def Start():
   HTTP.CacheTime = CACHE_1WEEK
   
 class PlexMovieAgent(Agent.Movies):
-  name = 'Plex Movie'
+  name = 'Plex Movie (Legacy)'
   primary_provider = True
   accepts_from = ['com.plexapp.agents.localmedia']
   contributes_to = ['com.plexapp.agents.themoviedb']
