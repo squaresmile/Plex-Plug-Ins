@@ -16,6 +16,7 @@ import sys
 import base64
 import urllib2
 import httplib
+import ssl
 
 from base import BaseComponent
 
@@ -272,6 +273,11 @@ class Networking(BaseComponent):
     self.cache_time = 0
     self.default_timeout = self._core.config.default_network_timeout
     
+    # On Windows make sure we don't try to load from its default CA paths as this is broken.
+    # We provide our own CA path via the SSL_CERT_FILE environment variable.
+    if sys.platform == 'win32':
+      setattr(ssl.SSLContext, "_windows_cert_stores", ())
+
     # Build a global opener.
     self._opener = self.build_opener()
 
